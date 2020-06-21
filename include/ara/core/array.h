@@ -5,8 +5,8 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef ARA_CORE_ARRAY_H
-#define ARA_CORE_ARRAY_H
+#ifndef ARA_CORE_ARRAY_H_
+#define ARA_CORE_ARRAY_H_
 
 #include <array> // std::array
 
@@ -214,4 +214,4 @@ namespace ara::core
     }
 } // namespace ara::core
 
-#endif // ARA_CORE_ARRAY_H
+#endif // ARA_CORE_ARRAY_H_
