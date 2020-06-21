@@ -9,7 +9,6 @@
 #define ARA_CORE_ARRAY_H
 
 #include <array> // std::array
-#include <iterator>
 
 namespace ara::core
 {
@@ -22,6 +21,11 @@ namespace ara::core
     class Array
     {
         public:
+            using iterator = std::array<T, N>::iterator;
+            using const_iterator = std::array<T, N>::const_iterator;
+            using reverse_iterator = std::array<T, N>::reverse_iterator;
+            using const_reverse_iterator = std::array<T, N>::const_reverse_iterator;
+
             Array() = default;
 
             /**
@@ -92,73 +96,73 @@ namespace ara::core
              * @brief Returns an iterator to the beginning.
              * 
              */
-            constexpr std::array<T, N>::iterator begin() { return d_.begin(); }
+            constexpr iterator begin() { return d_.begin(); }
 
             /**
              * @brief Returns an iterator to the beginning.
              * 
              */
-            constexpr std::array<T, N>::const_iterator begin() const { return d_.begin(); }
+            constexpr const_iterator begin() const { return d_.begin(); }
 
             /**
              * @brief Returns an iterator to the beginning.
              * 
              */
-            constexpr std::array<T, N>::const_iterator cbegin() const { return d_.cbegin(); }
+            constexpr const_iterator cbegin() const { return d_.cbegin(); }
 
             /**
              * @brief Returns an iterator to the end.
              * 
              */
-            constexpr std::array<T, N>::iterator end() { return d_.end(); }
+            constexpr iterator end() { return d_.end(); }
 
             /**
              * @brief Returns an iterator to the end.
              * 
              */
-            constexpr std::array<T, N>::const_iterator end() const { return d_.end(); }
+            constexpr const_iterator end() const { return d_.end(); }
 
             /**
              * @brief Returns an iterator to the end.
              * 
              */
-            constexpr std::array<T, N>::const_iterator cend() const { return d_.cend(); }
+            constexpr const_iterator cend() const { return d_.cend(); }
 
             /**
              * @brief Returns a reverse iterator to the beginning.
              * 
              */
-            constexpr std::array<T, N>::reverse_iterator rbegin() { return d_.rbegin(); }
+            constexpr reverse_iterator rbegin() { return d_.rbegin(); }
 
             /**
              * @brief Returns a reverse iterator to the beginning.
              * 
              */
-            constexpr std::array<T, N>::const_reverse_iterator rbegin() const { return d_.rbegin(); }
+            constexpr const_reverse_iterator rbegin() const { return d_.rbegin(); }
 
             /**
              * @brief Returns a reverse iterator to the beginning.
              * 
              */
-            constexpr std::array<T, N>::const_reverse_iterator crbegin() const { return d_.crbegin(); }
+            constexpr const_reverse_iterator crbegin() const { return d_.crbegin(); }
 
             /**
              * @brief Returns a reverse iterator to the end.
              * 
              */
-            constexpr std::array<T, N>::reverse_iterator rend() { return d_.rend(); }
+            constexpr reverse_iterator rend() { return d_.rend(); }
 
             /**
              * @brief Returns a reverse iterator to the end.
              * 
              */
-            constexpr std::array<T, N>::const_reverse_iterator rend() const { return d_.rend(); }
+            constexpr const_reverse_iterator rend() const { return d_.rend(); }
 
             /**
              * @brief Returns a reverse iterator to the end.
              * 
              */
-            constexpr std::array<T, N>::const_reverse_iterator crend() const { return d_.crend(); }
+            constexpr const_reverse_iterator crend() const { return d_.crend(); }
 
             /**
              * @brief Checks whether the container is empty.
