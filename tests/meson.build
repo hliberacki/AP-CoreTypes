@@ -1,17 +1,19 @@
-subdir('framework')
+subdir('test_runner')
 
 srcs = [
-    'lib1_test.cpp'
+    'error_domain_test.cpp'
 ]
+
+# Add `include` to include directories
+incdir = include_directories('../include')
 
 tests_exec = executable(
     'tests',
     srcs,
     dependencies: [
-        test_framework_dep,
-        library1_dep,
-        dependency('spdlog')
-    ]
+        test_runner_dep,
+    ],
+    include_directories : incdir
 )
 
 test('tests', tests_exec)
