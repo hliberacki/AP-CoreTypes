@@ -28,6 +28,10 @@ namespace ara::core
 
             Array() = default;
 
+            /**
+             * @brief Initialization list constructor
+             * 
+             */
             template<typename... Args>
             constexpr Array(Args... args) : d_{args...}
             {
