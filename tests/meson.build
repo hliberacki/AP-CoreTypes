@@ -1,7 +1,8 @@
 subdir('test_runner')
 
 srcs = [
-    'error_domain_test.cpp'
+    'error_domain_test.cpp',
+    'array_test.cpp'
 ]
 
 # Add `include` to include directories

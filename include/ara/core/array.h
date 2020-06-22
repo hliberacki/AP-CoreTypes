@@ -28,17 +28,23 @@ namespace ara::core
 
             Array() = default;
 
+            template<typename... Args>
+            constexpr Array(Args... args) : d_{args...}
+            {
+                static_assert(N == sizeof...(args));
+            }
+
             /**
              * @brief Access specified element with bounds checking.
              * 
-             * @param i position of thge element to return.
+             * @param i position of the element to return.
              */
             constexpr T& at(int i) { return d_.at(i); }
 
             /**
              * @brief Access specified element with bounds checking.
              * 
-             * @param i position of thge element to return.
+             * @param i position of the element to return.
              */
             constexpr const T& at(int i) const { return d_.at(i); }
             
