@@ -22,7 +22,6 @@ endif
 
 inc_dirs = include_directories('include')
 
-
 subdir('src')
 subdir('tests')
 
