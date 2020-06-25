@@ -107,7 +107,13 @@ TEST_CASE("operator<=>", "[SWS_CORE], [SWS_CORE_01201]")
     ara::core::Array<int, 3> b{0, 1, 2};
     ara::core::Array<int, 2> c{0, 1};
 
-    REQUIRE((a<=>b) == 0);
+
+    //This is a hack becasue Catch2 can't handle <=> properly
+    //It seems that <=> is not yet supported
+    if((a<=>b) == 0)
+        CHECK(true);
+    else
+        CHECK(false);
 }
 
 TEST_CASE("get<N>", "[SWS_CORE], [SWS_CORE_01201]")

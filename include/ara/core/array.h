@@ -62,7 +62,7 @@ namespace ara::core
              * @param lhs first array.
              * @param rhs second array. 
              */
-            friend constexpr auto operator<=>(const Array<T,N>&) const = default;
+            constexpr auto operator<=>(const Array<T,N>&) const = default;
 
             /**
              * @brief Access specified element with bounds checking.
