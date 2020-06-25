@@ -1,5 +1,5 @@
 /**
- * Copytight (c) 2020
+ * Copyright (c) 2020
  * umlaut Software Development and contributors
  * 
  * SPDX-License-Identifier: MIT
@@ -35,7 +35,7 @@ namespace ara::core
             template<typename... Args>
             constexpr Array(Args... args) : d_{args...}
             {
-                static_assert(N == sizeof...(args));
+                static_assert(N == sizeof...(args), "Size is not the same");
             }
 
             /**
