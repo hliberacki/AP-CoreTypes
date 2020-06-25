@@ -53,64 +53,64 @@ namespace ara::core
              * 
              * @param i position of the element to return.
              */
-            constexpr T& at(int i) { return d_.at(i); }
+            constexpr reference at(int i) { return d_.at(i); }
 
             /**
              * @brief Access specified element with bounds checking.
              * 
              * @param i position of the element to return.
              */
-            constexpr const T& at(int i) const { return d_.at(i); }
+            constexpr const_reference at(int i) const { return d_.at(i); }
             
             /**
              * @brief Access specified element.
              * 
              * @param i position of the element to return.
              */ 
-            constexpr T& operator [] (int i) { return d_[i]; }
+            constexpr reference operator [] (int i) { return d_[i]; }
             
             /**
              * @brief Access specified element.
              * 
              * @param i position of the element to return.
              */
-            constexpr const T& operator [] (int i) const { return d_[i]; }
+            constexpr const_reference operator [] (int i) const { return d_[i]; }
 
             /**
              * @brief Access the first element.
              * 
              */
-            constexpr T& front() { return d_.front(); }
+            constexpr reference front() { return d_.front(); }
 
             /**
              * @brief Access the first element.
              * 
              */
-            constexpr const T& front() const { return d_.front(); }
+            constexpr const_reference front() const { return d_.front(); }
 
             /**
              * @brief Access the last element.
              * 
              */
-            constexpr T& back() { return d_.back(); }
+            constexpr reference back() { return d_.back(); }
 
             /**
              * @brief Access the last element.
              * 
              */
-            constexpr const T& back() const { return d_.back(); }
+            constexpr const_reference back() const { return d_.back(); }
 
             /**
              * @brief Direct access to underlying array.
              * 
              */
-            constexpr T* data() { return d_.data(); }
+            constexpr pointer data() { return d_.data(); }
 
             /**
              * @brief Direct access to underlying array.
              * 
              */
-            constexpr const T* data() const { return d_.data(); }
+            constexpr const_pointer data() const { return d_.data(); }
 
             /**
              * @brief Returns an iterator to the beginning.
@@ -194,13 +194,13 @@ namespace ara::core
              * @brief Returns the number of elements.
              * 
              */
-            constexpr unsigned int size() const { return d_.size(); }
+            constexpr size_type size() const { return d_.size(); }
 
             /**
              * @brief Returns the maximum possible number of elements.
              * 
              */
-            constexpr unsigned int max_size() const { return d_.max_size(); }
+            constexpr size_type max_size() const { return d_.max_size(); }
 
             /**
              * @brief Fill the container with specified value.
