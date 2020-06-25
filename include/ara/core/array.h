@@ -104,103 +104,103 @@ namespace ara::core
              * @brief Direct access to underlying array.
              * 
              */
-            constexpr pointer data() { return d_.data(); }
+            constexpr pointer data() noexcept { return d_.data(); }
 
             /**
              * @brief Direct access to underlying array.
              * 
              */
-            constexpr const_pointer data() const { return d_.data(); }
+            constexpr const_pointer data() const noexcept { return d_.data(); }
 
             /**
              * @brief Returns an iterator to the beginning.
              * 
              */
-            constexpr iterator begin() { return d_.begin(); }
+            constexpr iterator begin() noexcept { return d_.begin(); }
 
             /**
              * @brief Returns an iterator to the beginning.
              * 
              */
-            constexpr const_iterator begin() const { return d_.begin(); }
+            constexpr const_iterator begin() const noexcept { return d_.begin(); }
 
             /**
              * @brief Returns an iterator to the beginning.
              * 
              */
-            constexpr const_iterator cbegin() const { return d_.cbegin(); }
+            constexpr const_iterator cbegin() const noexcept { return d_.cbegin(); }
 
             /**
              * @brief Returns an iterator to the end.
              * 
              */
-            constexpr iterator end() { return d_.end(); }
+            constexpr iterator end() noexcept { return d_.end(); }
 
             /**
              * @brief Returns an iterator to the end.
              * 
              */
-            constexpr const_iterator end() const { return d_.end(); }
+            constexpr const_iterator end() const noexcept { return d_.end(); }
 
             /**
              * @brief Returns an iterator to the end.
              * 
              */
-            constexpr const_iterator cend() const { return d_.cend(); }
+            constexpr const_iterator cend() const noexcept { return d_.cend(); }
 
             /**
              * @brief Returns a reverse iterator to the beginning.
              * 
              */
-            constexpr reverse_iterator rbegin() { return d_.rbegin(); }
+            constexpr reverse_iterator rbegin() noexcept { return d_.rbegin(); }
 
             /**
              * @brief Returns a reverse iterator to the beginning.
              * 
              */
-            constexpr const_reverse_iterator rbegin() const { return d_.rbegin(); }
+            constexpr const_reverse_iterator rbegin() const noexcept { return d_.rbegin(); }
 
             /**
              * @brief Returns a reverse iterator to the beginning.
              * 
              */
-            constexpr const_reverse_iterator crbegin() const { return d_.crbegin(); }
+            constexpr const_reverse_iterator crbegin() const noexcept { return d_.crbegin(); }
 
             /**
              * @brief Returns a reverse iterator to the end.
              * 
              */
-            constexpr reverse_iterator rend() { return d_.rend(); }
+            constexpr reverse_iterator rend() noexcept { return d_.rend(); }
 
             /**
              * @brief Returns a reverse iterator to the end.
              * 
              */
-            constexpr const_reverse_iterator rend() const { return d_.rend(); }
+            constexpr const_reverse_iterator rend() const noexcept { return d_.rend(); }
 
             /**
              * @brief Returns a reverse iterator to the end.
              * 
              */
-            constexpr const_reverse_iterator crend() const { return d_.crend(); }
+            constexpr const_reverse_iterator crend() const noexcept { return d_.crend(); }
 
             /**
              * @brief Checks whether the container is empty.
              * 
              */
-            [[nodiscard]] constexpr bool empty() const { return d_.empty(); }
+            [[nodiscard]] constexpr bool empty() const noexcept { return d_.empty(); }
 
             /**
              * @brief Returns the number of elements.
              * 
              */
-            constexpr size_type size() const { return d_.size(); }
+            constexpr size_type size() const noexcept { return d_.size(); }
 
             /**
              * @brief Returns the maximum possible number of elements.
              * 
              */
-            constexpr size_type max_size() const { return d_.max_size(); }
+            constexpr size_type max_size() const noexcept { return d_.max_size(); }
 
             /**
              * @brief Fill the container with specified value.
@@ -214,7 +214,7 @@ namespace ara::core
              * 
              * @param other container to exchange the contents with.
              */
-            constexpr void swap(Array<T,N>& other) { std::swap(d_, other.d_); }
+            constexpr void swap(Array<T,N>& other) noexcept(std::is_nothrow_swappable_v<T>) { std::swap(d_, other.d_); }
         private:
             std::array<T, N> d_;
     };
