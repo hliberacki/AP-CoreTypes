@@ -49,6 +49,22 @@ namespace ara::core
             }
 
             /**
+             * @brief Checks if the contents of arrays are equal.
+             * 
+             * @param lhs first array.
+             * @param rhs second array. 
+             */
+            constexpr bool operator==(const Array<T,N>&) const = default;
+
+            /**
+             * @brief Comparesthe contents of arrays lexicographically.
+             * 
+             * @param lhs first array.
+             * @param rhs second array. 
+             */
+            constexpr auto operator<=>(const Array<T,N>&) const = default;
+
+            /**
              * @brief Access specified element with bounds checking.
              * 
              * @param i position of the element to return.
@@ -220,6 +236,32 @@ namespace ara::core
     };
 
     /**
+     * @brief Extracts the Ith element from the array.
+     * 
+     * @param a array whose contents to extract.
+     */
+    template<std::size_t I, class T, std::size_t N>
+    constexpr T& get(Array<T,N> &a) noexcept
+    {
+        static_assert(I >= a.size(), "I greather than array size.");
+
+        return a.at(I);
+    }
+
+    /**
+     * @brief Extracts the Ith element from the array.
+     * 
+     * @param a array whose contents to extract.
+     */
+    template<std::size_t I, class T, std::size_t N>
+    constexpr const T& get(const Array<T,N> &a)  noexcept
+    {
+        static_assert(I >= a.size(), "I greather than array size.");
+
+        return a.at(I);
+    }
+
+    /**
      * @brief Exchanges content between arrays.
      * 
      * @param lhs first argument of swap invocation.
@@ -231,6 +273,40 @@ namespace ara::core
     void swap(Array<T, N> &lhs, Array<T, N> &rhs)
     {
         lhs.swap(rhs);
+    }
+
+    /**
+     * @brief Creates a Array from one dimensional built-in array.
+     * 
+     * @param a the built-in array to be converted.
+     */
+    template <class T, std::size_t N>
+    constexpr Array<std::remove_cv_t<T>, N> to_array(T (&a)[N])
+    {
+        Array<std::remove_cv_t<T>, N> array;
+        for (int i = 0; i < N; i++)
+        {
+            array[i] = a[i];
+        }
+
+        return array;
+    }
+
+    /**
+     * @brief Creates a Array from one dimensional built-in array.
+     * 
+     * @param a the built-in array to be converted.
+     */
+    template <class T, std::size_t N>
+    constexpr Array<std::remove_cv_t<T>, N> to_array(T (&&a)[N])
+    {
+        Array<std::remove_cv_t<T>, N> array;
+        for (int i = 0; i < N; i++)
+        {
+            array[i] = std::move(a[i]);
+        }
+
+        return array;
     }
 } // namespace ara::core
 
