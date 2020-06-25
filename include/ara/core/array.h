@@ -53,28 +53,28 @@ namespace ara::core
              * 
              * @param i position of the element to return.
              */
-            constexpr reference at(int i) { return d_.at(i); }
+            constexpr reference at(size_type i) { return d_.at(i); }
 
             /**
              * @brief Access specified element with bounds checking.
              * 
              * @param i position of the element to return.
              */
-            constexpr const_reference at(int i) const { return d_.at(i); }
+            constexpr const_reference at(size_type i) const { return d_.at(i); }
             
             /**
              * @brief Access specified element.
              * 
              * @param i position of the element to return.
              */ 
-            constexpr reference operator [] (int i) { return d_[i]; }
+            constexpr reference operator [] (size_type i) { return d_[i]; }
             
             /**
              * @brief Access specified element.
              * 
              * @param i position of the element to return.
              */
-            constexpr const_reference operator [] (int i) const { return d_[i]; }
+            constexpr const_reference operator [] (size_type i) const { return d_[i]; }
 
             /**
              * @brief Access the first element.
