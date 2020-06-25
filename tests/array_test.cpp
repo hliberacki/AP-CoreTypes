@@ -90,3 +90,33 @@ TEST_CASE("ara::core::swap", "[SWS_CORE], [SWS_CORE_01296]")
     REQUIRE(p[0] == 2);
     REQUIRE(q[0] == 0);
 }
+
+TEST_CASE("operator==", "[SWS_CORE], [SWS_CORE_01201]")
+{
+    ara::core::Array<int, 3> a{0, 1, 2};
+    ara::core::Array<int, 3> b{0, 1, 2};
+    ara::core::Array<int, 3> c{2, 1, 0};
+
+    REQUIRE((a==b) == true);
+    REQUIRE((b==c) == false);
+}
+
+TEST_CASE("operator<=>", "[SWS_CORE], [SWS_CORE_01201]")
+{
+    ara::core::Array<int, 3> a{0, 1, 2};
+    ara::core::Array<int, 3> b{0, 1, 2};
+    ara::core::Array<int, 2> c{0, 1};
+
+    REQUIRE((a<=>b) == 0);
+}
+
+TEST_CASE("get<N>", "[SWS_CORE], [SWS_CORE_01201]")
+{
+    ara::core::Array<int, 3> a{0, 1, 2};
+    REQUIRE(ara::core::get<1>(a) == 1);
+}
+
+TEST_CASE("to_array", "[SWS_CORE], [SWS_CORE_01201]")
+{
+    REQUIRE(ara::core::to_array({0, 1, 2}).size() == 3);
+}

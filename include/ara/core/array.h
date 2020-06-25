@@ -62,7 +62,7 @@ namespace ara::core
              * @param lhs first array.
              * @param rhs second array. 
              */
-            constexpr auto operator<=>(const Array<T,N>&) const = default;
+            friend constexpr auto operator<=>(const Array<T,N>&) const = default;
 
             /**
              * @brief Access specified element with bounds checking.
@@ -243,8 +243,6 @@ namespace ara::core
     template<std::size_t I, class T, std::size_t N>
     constexpr T& get(Array<T,N> &a) noexcept
     {
-        static_assert(I >= a.size(), "I greather than array size.");
-
         return a.at(I);
     }
 
@@ -256,8 +254,6 @@ namespace ara::core
     template<std::size_t I, class T, std::size_t N>
     constexpr const T& get(const Array<T,N> &a)  noexcept
     {
-        static_assert(I >= a.size(), "I greather than array size.");
-
         return a.at(I);
     }
 
@@ -284,7 +280,7 @@ namespace ara::core
     constexpr Array<std::remove_cv_t<T>, N> to_array(T (&a)[N])
     {
         Array<std::remove_cv_t<T>, N> array;
-        for (int i = 0; i < N; i++)
+        for (std::size_t i = 0; i < N; i++)
         {
             array[i] = a[i];
         }
@@ -301,7 +297,7 @@ namespace ara::core
     constexpr Array<std::remove_cv_t<T>, N> to_array(T (&&a)[N])
     {
         Array<std::remove_cv_t<T>, N> array;
-        for (int i = 0; i < N; i++)
+        for (std::size_t i = 0; i < N; i++)
         {
             array[i] = std::move(a[i]);
         }
