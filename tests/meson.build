@@ -4,7 +4,8 @@ srcs = [
     'error_domain_test.cpp',
     'array_test.cpp',
     'map_test.cpp',
-    'utility_test.cpp'
+    'utility_test.cpp',
+    'variant_test.cpp'
 ]
 
 # Add `include` to include directories
