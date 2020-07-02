@@ -14,6 +14,27 @@ namespace ara::core     // is_reference_v
 {
 
 namespace {
+
+template<class... Ts> struct TypeList
+{};
+
+template<class T, class List> struct type_occurence;
+
+template<class T, class... Ts>
+struct type_occurence<T, TypeList<Ts...>> : std::integral_constant<size_t, 0>
+{};
+
+template<class T, class Head, class... Tail>
+struct type_occurence<T, TypeList<Head, Tail...>>
+  : std::integral_constant<size_t,
+                           std::is_same_v<T, Head>
+                             ? type_occurence<T, TypeList<Tail...>>::value + 1
+                             : type_occurence<T, TypeList<Tail...>>::value>
+{};
+
+template<class T, class... Tail> constexpr bool type_occurence_v =
+  type_occurence<T, TypeList<Tail...>>::value;
+
 template<std::size_t I, class... Tail> struct pack_element;
 
 template<std::size_t I, class Head, class... Tail>
@@ -25,21 +46,8 @@ template<class Head, class... Tail> struct pack_element<0, Head, Tail...>
     using type = Head;
 };
 
-template<class... Tail> struct exactly_once;
-
-template<class T, class U, class... Tail>
-struct exactly_once<T, U, Tail...> : exactly_once<U, Tail...>
-{};
-
-template<class T, class... Tail>
-struct exactly_once<T, T, Tail...> : std::false_type
-{};
-
-template<class T> struct exactly_once<T> : std::true_type
-{};
-
-template<class... Ts> constexpr bool exactly_once_v =
-  exactly_once<Ts...>::value;
+template<class T, class... Ts> constexpr bool
+  exactly_once_v = (type_occurence_v<T, Ts...> == 1);
 
 template<class T, class... Alternatives> struct element_pos
   : std::integral_constant<std::size_t, 0>
@@ -107,6 +115,13 @@ template<std::size_t I, class T> struct Variant_alternative<I, const volatile T>
 
 inline constexpr std::size_t variant_npos = -1;
 
+template<class T, class... Alternatives> constexpr bool
+holds_alternative(const Variant<Alternatives...>& variant) noexcept
+{
+    static_assert(exactly_once_v<T, Alternatives...>, "T must occure only once");
+    return (variant.index() == element_pos_v<T, Alternatives...>);
+}
+
 /**
  * @brief Representation of a type-safe union
  *
@@ -172,6 +187,8 @@ template<typename... Alternatives> class Variant
                                Args&&... args)
       : _impl(i, il, std::forward<Args>(args)...)
     {}
+
+    constexpr std::size_t index() const noexcept { return _impl.index(); }
 
  private:
     // wrapped member
