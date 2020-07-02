@@ -22,7 +22,8 @@ TEST_CASE("Variant_alternative")
     CHECK(std::is_same_v<float, core::Variant_alternative_t<1, var>>);
 
     CHECK(std::is_same_v<const int, core::Variant_alternative_t<0, const var>>);
-    CHECK(std::is_same_v<const float, core::Variant_alternative_t<1, const var>>);
+    CHECK(
+      std::is_same_v<const float, core::Variant_alternative_t<1, const var>>);
 
     CHECK(std::is_same_v<volatile int,
                          core::Variant_alternative_t<0, volatile var>>);
