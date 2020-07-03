@@ -14,7 +14,6 @@ namespace ara::core     // is_reference_v
 {
 
 namespace {
-
 template<class... Ts> struct TypeList
 {};
 
@@ -47,7 +46,7 @@ template<class Head, class... Tail> struct pack_element<0, Head, Tail...>
 };
 
 template<class T, class... Ts> constexpr bool
-  exactly_once_v = (type_occurence_v<T, Ts...> == 1);
+  is_unique_v = (type_occurence_v<T, Ts...> == 1);
 
 template<class T, class... Alternatives> struct element_pos
   : std::integral_constant<std::size_t, 0>
@@ -115,10 +114,39 @@ template<std::size_t I, class T> struct Variant_alternative<I, const volatile T>
 
 inline constexpr std::size_t variant_npos = -1;
 
+// this can be done like that since std::monostace is just a placeholder
+struct Monostate : std::monostate
+{};
+
+constexpr bool operator==(Monostate, Monostate) noexcept
+{
+    return true;
+}
+constexpr bool operator!=(Monostate, Monostate) noexcept
+{
+    return false;
+}
+constexpr bool operator<(Monostate, Monostate) noexcept
+{
+    return false;
+}
+constexpr bool operator>(Monostate, Monostate) noexcept
+{
+    return false;
+}
+constexpr bool operator<=(Monostate, Monostate) noexcept
+{
+    return true;
+}
+constexpr bool operator>=(Monostate, Monostate) noexcept
+{
+    return true;
+}
+
 template<class T, class... Alternatives> constexpr bool
 holds_alternative(const Variant<Alternatives...>& variant) noexcept
 {
-    static_assert(exactly_once_v<T, Alternatives...>, "T must occure only once");
+    static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
     return (variant.index() == element_pos_v<T, Alternatives...>);
 }
 
@@ -142,13 +170,14 @@ template<typename... Alternatives> class Variant
  public:
     static_assert(sizeof...(Alternatives) > 0,
                   "Variant must have at least one alternative");
-    static_assert(exactly_once_v<Alternatives...>,
+    static_assert(is_unique_v<Alternatives...>,
                   "All alternatives must be unique");
     static_assert(! (std::is_reference_v<Alternatives> || ...),
                   "Variant must have no reference alternative");
     static_assert(! (std::is_void_v<Alternatives> || ...),
                   "variant must have no void alternative");
 
+    // Constructors
     constexpr Variant() noexcept(std::is_nothrow_default_constructible_v<T_0>)
       : _impl()
     {}
@@ -188,12 +217,73 @@ template<typename... Alternatives> class Variant
       : _impl(i, il, std::forward<Args>(args)...)
     {}
 
+    // Destructor
+    ~Variant() = default;
+
+    // Observers
     constexpr std::size_t index() const noexcept { return _impl.index(); }
+    constexpr bool        valueless_by_exception() const noexcept
+    {
+        return _impl.valueless_by_exception();
+    }
+
+    // Modifiers
+    template<typename T, class... Args> typename std::enable_if<
+      std::is_constructible_v<T, Args...> && is_unique_v<T, Args...>,
+      T&>::type
+    emplace(Args&&... args)
+    {
+        return _impl.template emplace<T, Args...>(std::forward<Args>(args)...);
+    }
+
+    template<class T, class U, class... Args> typename std::enable_if<
+      std::is_constructible_v<T,
+                              std::initializer_list<U>&,
+                              Args...> && is_unique_v<T, Args...>,
+      T&>::type
+    emplace(std::initializer_list<U> il, Args&&... args)
+    {
+        return _impl.template emplace<T, U, Args...>(il,
+                                                     std::forward<Args>(
+                                                       args)...);
+    }
+
+    template<size_t I, class... Args> typename std::enable_if<
+      std::is_constructible_v<Variant_alternative_t<I, Variant>, Args...>,
+      Variant_alternative_t<I, Variant>&>::type
+    emplace(Args&&... args)
+    {
+        static_assert(I < sizeof...(Args),
+                      "Index must be in range of alternatives number");
+        return _impl.template emplace<I, Args...>(std::forward<Args>(args)...);
+    }
+
+    template<size_t I, class U, class... Args> typename std::enable_if<
+      std::is_constructible_v<Variant_alternative_t<I, Variant>,
+                              std::initializer_list<U>&,
+                              Args...>,
+      Variant_alternative_t<I, Variant>&>::type
+    emplace(std::initializer_list<U> il, Args&&... args)
+    {
+        static_assert(I < sizeof...(Args),
+                      "Index must be in range of alternatives number");
+        return _impl.template emplace<I, U, Args...>(il,
+                                                     std::forward<Args>(
+                                                       args)...);
+    }
+
+    void swap(Variant& rhs) noexcept(
+      ((std::is_nothrow_move_constructible_v<
+          Alternatives> && std::is_nothrow_swappable_v<Alternatives>) &&...))
+    {
+        _impl.swap(rhs._impl);
+    }
 
  private:
     // wrapped member
     std::variant<Alternatives...> _impl;
 };
+
 /**
  * @brief Exchange values of variants
  *
@@ -205,7 +295,228 @@ template<typename... Alternatives> class Variant
 template<typename... Alternatives> void
 swap(Variant<Alternatives...>& lhs, Variant<Alternatives...>& rhs)
 {
-    return swap(lhs, rhs);
+    lhs.swap(rhs);
+}
+
+template<std::size_t I, class... Alternatives>
+constexpr Variant_alternative_t<I, Variant<Alternatives...>>&
+get(Variant<Alternatives...>& v)
+{
+    static_assert(I < sizeof...(Alternatives),
+                  "Index must be in range of alternatives number");
+    return std::get<I>(v);
+}
+
+template<std::size_t I, class... Alternatives>
+constexpr Variant_alternative_t<I, Variant<Alternatives...>>&&
+get(Variant<Alternatives...>&& v)
+{
+    static_assert(I < sizeof...(Alternatives),
+                  "Index must be in range of alternatives number");
+    return std::get<I>(std::forward<Variant<Alternatives...>>(v));
+}
+
+template<std::size_t I, class... Alternatives>
+constexpr const Variant_alternative_t<I, Variant<Alternatives...>>&
+get(Variant<Alternatives...>& v)
+{
+    static_assert(I < sizeof...(Alternatives),
+                  "Index must be in range of alternatives number");
+    return std::get<I>(v);
+}
+
+template<std::size_t I, class... Alternatives>
+constexpr const Variant_alternative_t<I, Variant<Alternatives...>>&&
+get(Variant<Alternatives...>&& v)
+{
+    static_assert(I < sizeof...(Alternatives),
+                  "Index must be in range of alternatives number");
+    return std::get<I>(std::forward<Variant<Alternatives...>>(v));
+}
+
+template<class Visitor, class... Variants> constexpr decltype(auto)
+visit(Visitor&& vis, Variants&&... vars)
+{
+    return std::visit<Visitor, Variants...>(std::forward<Visitor>(vis),
+                                            std::forward<Variants>(vars)...);
+}
+
+template<std::size_t I, class... Alternatives>
+constexpr std::add_pointer_t<Variant_alternative_t<I, Variant<Alternatives...>>>
+get_if(Variant<Alternatives...>* pv) noexcept
+{
+    static_assert(I < sizeof...(Alternatives),
+                  "Index must be in range of alternatives number");
+    static_assert(! std::is_void_v<
+                    Variant_alternative_t<I, Variant<Alternatives...>>>,
+                  "Indexed type can't be void");
+    if (pv && pv->index() == I)
+    {
+        return std::addressof(get<I>(*pv));
+    }
+    return nullptr;
+}
+
+template<std::size_t I, class... Alternatives> constexpr std::add_pointer_t<
+  const Variant_alternative_t<I, Variant<Alternatives...>>>
+get_if(const Variant<Alternatives...>* pv) noexcept
+{
+    static_assert(I < sizeof...(Alternatives),
+                  "Index must be in range of alternatives number");
+    static_assert(! std::is_void_v<
+                    Variant_alternative_t<I, Variant<Alternatives...>>>,
+                  "Indexed type can't be void");
+    if (pv && pv->index() == I)
+    {
+        return std::addressof(get<I>(*pv));
+    }
+    return nullptr;
+}
+
+
+template<class T, class... Alternatives> constexpr std::add_pointer_t<T>
+get_if(Variant<Alternatives...>* pv) noexcept
+{
+    static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
+    static_assert(! std::is_void_v<T>, "T can't be void");
+    return get_if<element_pos_v<T, Alternatives...>>(pv);
+}
+
+template<class T, class... Alternatives> constexpr std::add_pointer_t<const T>
+get_if(const Variant<Alternatives...>* pv) noexcept
+{
+    static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
+    static_assert(! std::is_void_v<T>, "T can't be void");
+    return get_if<element_pos_v<T, Alternatives...>>(pv);
+}
+
+template<class... Alternatives> constexpr bool
+operator==(const std::variant<Alternatives...>& v,
+           const std::variant<Alternatives...>& w)
+{
+    if (v.index() != w.index())
+    {
+        return false;
+    }
+    else if (v.valueless_by_exception())
+    {
+        return true;
+    }
+    else
+    {
+        return get<v.index()>(v) == get<w.index()>(w);
+    }
+}
+
+template<class... Alternatives> constexpr bool
+operator!=(const std::variant<Alternatives...>& v,
+           const std::variant<Alternatives...>& w)
+{
+    return ! (v == w);
+}
+
+template<class... Alternatives> constexpr bool
+operator<(const std::variant<Alternatives...>& v,
+          const std::variant<Alternatives...>& w)
+{
+    if (w.valueless_by_exception())
+    {
+        return false;
+    }
+    else if (v.valueless_by_exception())
+    {
+        return true;
+    }
+    else if (v.index() < w.index())
+    {
+        return true;
+    }
+    else if (v.index() > w.index())
+    {
+        return false;
+    }
+    else
+    {
+        return get<v.index()>(v) < get<w.index()>(w);
+    }
+}
+
+template<class... Alternatives> constexpr bool
+operator>(const std::variant<Alternatives...>& v,
+          const std::variant<Alternatives...>& w)
+{
+    if (v.valueless_by_exception())
+    {
+        return false;
+    }
+    else if (w.valueless_by_exception())
+    {
+        return true;
+    }
+    else if (v.index() > w.index())
+    {
+        return true;
+    }
+    else if (v.index() < w.index())
+    {
+        return false;
+    }
+    else
+    {
+        return get<v.index()>(v) > get<w.index()>(w);
+    }
+}
+
+template<class... Alternatives> constexpr bool
+operator<=(const std::variant<Alternatives...>& v,
+           const std::variant<Alternatives...>& w)
+{
+    if (v.valueless_by_exception())
+    {
+        return true;
+    }
+    else if (w.valueless_by_exception())
+    {
+        return false;
+    }
+    else if (v.index() < w.index())
+    {
+        return true;
+    }
+    else if (v.index() > w.index())
+    {
+        return false;
+    }
+    else
+    {
+        return get<v.index()>(v) <= get<w.index()>(w);
+    }
+}
+
+template<class... Alternatives> constexpr bool
+operator>=(const std::variant<Alternatives...>& v,
+           const std::variant<Alternatives...>& w)
+{
+    if (w.valueless_by_exception())
+    {
+        return true;
+    }
+    else if (v.valueless_by_exception())
+    {
+        return false;
+    }
+    else if (v.index() > w.index())
+    {
+        return true;
+    }
+    else if (v.index() < w.index())
+    {
+        return false;
+    }
+    else
+    {
+        return get<v.index()>(v) >= get<w.index()>(w);
+    }
 }
 
 }  // namespace ara::core
