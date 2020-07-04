@@ -56,7 +56,7 @@ template<class T, class Head, class... Tail>
 struct element_pos<T, Head, Tail...>
   : std::integral_constant<
       size_t,
-      std::is_same_v<T, Head> ? 0 : element_pos<Head, Tail...>::value + 1>
+      std::is_same_v<T, Head> ? 0 : element_pos<T, Tail...>::value + 1>
 {};
 
 template<class Head, class... Tail> constexpr std::size_t element_pos_v =
@@ -115,7 +115,7 @@ template<std::size_t I, class T> struct Variant_alternative<I, const volatile T>
 inline constexpr std::size_t variant_npos = -1;
 
 // this can be done like that since std::monostace is just a placeholder
-struct Monostate : std::monostate
+struct Monostate
 {};
 
 constexpr bool operator==(Monostate, Monostate) noexcept
@@ -170,8 +170,6 @@ template<typename... Alternatives> class Variant
  public:
     static_assert(sizeof...(Alternatives) > 0,
                   "Variant must have at least one alternative");
-    static_assert(is_unique_v<Alternatives...>,
-                  "All alternatives must be unique");
     static_assert(! (std::is_reference_v<Alternatives> || ...),
                   "Variant must have no reference alternative");
     static_assert(! (std::is_void_v<Alternatives> || ...),
@@ -189,7 +187,11 @@ template<typename... Alternatives> class Variant
       : _impl(other)
     {}
 
-    template<class T> constexpr Variant(T&& t) noexcept
+    //FIXME: Commented out -> type deduced as const char[] for std::string
+    template<class T/*,
+             size_t I   = element_pos_v<T, Alternatives...>,
+             class Type = Variant_alternative_t<I, Variant>*/>
+    constexpr Variant(T&& t) noexcept/*(std::is_nothrow_constructible_v<Type, T>)*/
       : _impl(std::forward<T>(t))
     {}
 
@@ -219,6 +221,31 @@ template<typename... Alternatives> class Variant
 
     // Destructor
     ~Variant() = default;
+
+    constexpr Variant& operator=(const Variant& rhs)
+    {
+        _impl = rhs._impl;
+        return *this;
+    }
+
+    constexpr Variant& operator=(Variant&& rhs) noexcept(((
+      std::is_nothrow_move_constructible_v<
+        Alternatives> && std::is_nothrow_move_assignable_v<Alternatives>) &&...))
+    {
+        _impl = std::move(rhs._impl);
+        return *this;
+    }
+
+    template<class T,
+             size_t I   = element_pos_v<T, Alternatives...>,
+             class Type = Variant_alternative_t<I, Variant>>
+    Variant&
+    operator=(T&& t) noexcept(std::is_nothrow_assignable_v<Type&, T>&&
+                                std::is_nothrow_constructible_v<Type&, T>)
+    {
+        _impl = _impl.template operator=<T>(std::forward<T>(t));
+        return *this;
+    }
 
     // Observers
     constexpr std::size_t index() const noexcept { return _impl.index(); }
@@ -391,8 +418,7 @@ get_if(const Variant<Alternatives...>* pv) noexcept
 }
 
 template<class... Alternatives> constexpr bool
-operator==(const std::variant<Alternatives...>& v,
-           const std::variant<Alternatives...>& w)
+operator==(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     if (v.index() != w.index())
     {
@@ -409,15 +435,13 @@ operator==(const std::variant<Alternatives...>& v,
 }
 
 template<class... Alternatives> constexpr bool
-operator!=(const std::variant<Alternatives...>& v,
-           const std::variant<Alternatives...>& w)
+operator!=(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     return ! (v == w);
 }
 
 template<class... Alternatives> constexpr bool
-operator<(const std::variant<Alternatives...>& v,
-          const std::variant<Alternatives...>& w)
+operator<(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     if (w.valueless_by_exception())
     {
@@ -442,8 +466,7 @@ operator<(const std::variant<Alternatives...>& v,
 }
 
 template<class... Alternatives> constexpr bool
-operator>(const std::variant<Alternatives...>& v,
-          const std::variant<Alternatives...>& w)
+operator>(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     if (v.valueless_by_exception())
     {
@@ -468,8 +491,7 @@ operator>(const std::variant<Alternatives...>& v,
 }
 
 template<class... Alternatives> constexpr bool
-operator<=(const std::variant<Alternatives...>& v,
-           const std::variant<Alternatives...>& w)
+operator<=(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     if (v.valueless_by_exception())
     {
@@ -494,8 +516,7 @@ operator<=(const std::variant<Alternatives...>& v,
 }
 
 template<class... Alternatives> constexpr bool
-operator>=(const std::variant<Alternatives...>& v,
-           const std::variant<Alternatives...>& w)
+operator>=(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     if (w.valueless_by_exception())
     {

@@ -35,3 +35,13 @@ TEST_CASE("Variant_alternative")
     CHECK(std::is_same_v<const volatile float,
                          core::Variant_alternative_t<1, const volatile var>>);
 }
+
+TEST_CASE("holds_alternative")
+{
+    core::Variant<int, std::string> v = "abc";
+    CHECK(! core::holds_alternative<int>(v));
+    CHECK(core::holds_alternative<std::string>(v));
+    v = 1;
+    CHECK(core::holds_alternative<int>(v));
+    CHECK(! core::holds_alternative<std::string>(v));
+}
