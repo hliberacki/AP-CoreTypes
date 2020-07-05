@@ -1,5 +1,5 @@
 /**
- * Copytight (c) 2020
+ * Copyright (c) 2020
  * umlaut Software Development and contributors
  *
  * SPDX-License-Identifier: MIT
@@ -8,59 +8,151 @@
 #ifndef ARA_CORE_VARIANT_H_
 #define ARA_CORE_VARIANT_H_
 
+#include "utility.h"    //in_place_t
 #include <type_traits>  //
 #include <variant>      //std::variant
-namespace ara::core     // is_reference_v
+
+namespace ara::core  // is_reference_v
 {
 
+// helpers - custom type traits
 namespace {
+
+/**
+ * Placeholder for variadic types.
+ *
+ * Empty helper struct which represents place holder for variadic types.
+ *
+ * @tparam Ts variadic types
+ *
+ */
 template<class... Ts> struct TypeList
 {};
 
-template<class T, class List> struct type_occurence;
+template<class T, class Types> struct type_occurrence;  // undefined case
 
+/**
+ * Count type occurrence in list of types
+ *
+ * Type trait to count number of occurrence for given T type in types TS
+ *
+ * @tparam T type which occurrence is counted
+ * @tparam Ts collection of types to check
+ *
+ */
 template<class T, class... Ts>
-struct type_occurence<T, TypeList<Ts...>> : std::integral_constant<size_t, 0>
+struct type_occurrence<T, TypeList<Ts...>> : std::integral_constant<size_t, 0>
 {};
 
+/**
+ * specialization used for metaprogramming - recursively.
+ *
+ * Template traverse all given types and if given T is the same as current
+ * visited Head constexpr counter value is increased.
+ *
+ **/
 template<class T, class Head, class... Tail>
-struct type_occurence<T, TypeList<Head, Tail...>>
+struct type_occurrence<T, TypeList<Head, Tail...>>
   : std::integral_constant<size_t,
                            std::is_same_v<T, Head>
-                             ? type_occurence<T, TypeList<Tail...>>::value + 1
-                             : type_occurence<T, TypeList<Tail...>>::value>
+                             ? type_occurrence<T, TypeList<Tail...>>::value + 1
+                             : type_occurrence<T, TypeList<Tail...>>::value>
 {};
 
-template<class T, class... Tail> constexpr bool type_occurence_v =
-  type_occurence<T, TypeList<Tail...>>::value;
+/**
+ * Helper constexpr value for type_occurrence.
+ *
+ * @tparam T type which occupance is counted
+ * @tparam Ts collection of types to check
+ * @return value size_t constexpr number of occurrence
+ *
+ */
+template<class T, class... Tail> constexpr std::size_t type_occurrence_v =
+  type_occurrence<T, TypeList<Tail...>>::value;
 
-template<std::size_t I, class... Tail> struct pack_element;
+/**
+ * Find type in list of types by index
+ *
+ * Type trait to return type which is inside of list of types Tail, on specified
+ * index I
+ *
+ * @tparam I index of searched type
+ * @tparam Tail collection of types to check
+ */
+template<std::size_t I, class... Tail> struct pack_element;  // undefined case
 
+/**
+ * specialization used for metaprogramming - recursively.
+ *
+ * Template traverse Index decrementing it recursively
+ *
+ **/
 template<std::size_t I, class Head, class... Tail>
 struct pack_element<I, Head, Tail...> : pack_element<I - 1, Tail...>
 {};
 
+/**
+ * specialization used for metaprogramming - recursively.
+ *
+ * In case Index is 0, Head is returned as result type
+ *
+ **/
 template<class Head, class... Tail> struct pack_element<0, Head, Tail...>
 {
     using type = Head;
 };
 
+/**
+ * Checks if type is unique in list of types
+ *
+ * contant expression checking if given T type is unique in list of types Ts
+ *
+ * @tparam I index of searched type
+ * @tparam Tail collection of types to check
+ * @return true if type is unique
+ * @return false otherwise
+ */
 template<class T, class... Ts> constexpr bool
-  is_unique_v = (type_occurence_v<T, Ts...> == 1);
+  is_unique_v = (type_occurrence_v<T, Ts...> == 1);
 
+/**
+ * Find Index of type in list of types.
+ *
+ * Type trait to return Index of type T which is inside of list of types Alternatives
+ *
+ * @tparam T Type of which index is searched
+ * @tparam Alternatives collection of types to check
+ * @return Index of first found T in Alternatives
+ * @return sizeof...(Alternatives) otherwise
+ */
 template<class T, class... Alternatives> struct element_pos
   : std::integral_constant<std::size_t, 0>
 {};
 
-template<class T, class Head, class... Tail>
-struct element_pos<T, Head, Tail...>
+/**
+ * specialization used for metaprogramming - recursively.
+ *
+ * Template traverse all types recursively, stops if T is found
+ *
+ **/
+template<class T, class Head, class... Alternatives>
+struct element_pos<T, Head, Alternatives...>
   : std::integral_constant<
       size_t,
-      std::is_same_v<T, Head> ? 0 : element_pos<T, Tail...>::value + 1>
+      std::is_same_v<T, Head> ? 0 : element_pos<T, Alternatives...>::value + 1>
 {};
 
-template<class Head, class... Tail> constexpr std::size_t element_pos_v =
-  element_pos<Head, Tail...>::value;
+/**
+ * Helper constexpr value for element_pos.
+ *
+ * @tparam T which index if searched for
+ * @tparam Alternatives collection of types to check
+ * @return value size_t constexpr index of T
+ * @return sizeof...(Alternatives) otherwise
+ *
+ */
+template<class T, class... Alternatives> constexpr std::size_t element_pos_v =
+  element_pos<T, Alternatives...>::value;
 }  // namespace
 
 // forward declaration
@@ -187,7 +279,7 @@ template<typename... Alternatives> class Variant
       : _impl(other)
     {}
 
-    //FIXME: Commented out -> type deduced as const char[] for std::string
+    // FIXME: Commented out -> type deduced as const char[] for std::string
     template<class T/*,
              size_t I   = element_pos_v<T, Alternatives...>,
              class Type = Variant_alternative_t<I, Variant>*/>
