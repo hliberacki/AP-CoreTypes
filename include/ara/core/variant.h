@@ -159,54 +159,60 @@ template<class T, class... Alternatives> constexpr std::size_t element_pos_v =
 template<typename... Alternatives> class Variant;
 
 // 20.7.4[C++ Standard], Variant helper classes
-template<class T> struct Variant_size;
-template<class T> struct Variant_size<const T> : Variant_size<T>
+template<class T> struct variant_size;
+template<class T> struct variant_size<const T> : variant_size<T>
 {};
-template<class T> struct Variant_size<volatile T> : Variant_size<T>
+template<class T> struct variant_size<volatile T> : variant_size<T>
 {};
-template<class T> struct Variant_size<const volatile T> : Variant_size<T>
+template<class T> struct variant_size<const volatile T> : variant_size<T>
 {};
 
-template<class... Alternatives> struct Variant_size<Variant<Alternatives...>>
+template<class... Alternatives> struct variant_size<Variant<Alternatives...>>
   : std::integral_constant<std::size_t, sizeof...(Alternatives)>
 {};
 
-template<class T> constexpr std::size_t Variant_size_v = Variant_size<T>::value;
+template<class T> constexpr std::size_t variant_size_v = variant_size<T>::value;
 
-template<std::size_t I, class T> struct Variant_alternative;
+template<std::size_t I, class T> struct variant_alternative;
 
 template<std::size_t I, class Head, class... Tail>
-struct Variant_alternative<I, Variant<Head, Tail...>>
-  : Variant_alternative<I - 1, Variant<Tail...>>
+struct variant_alternative<I, Variant<Head, Tail...>>
+  : variant_alternative<I - 1, Variant<Tail...>>
 {};
 
 template<class Head, class... Tail>
-struct Variant_alternative<0, Variant<Head, Tail...>>
+struct variant_alternative<0, Variant<Head, Tail...>>
 {
     using type = Head;
 };
 
-template<std::size_t I, class T> using Variant_alternative_t =
-  typename Variant_alternative<I, T>::type;
+template<std::size_t I, class T> using variant_alternative_t =
+  typename variant_alternative<I, T>::type;
 
-template<std::size_t I, class T> struct Variant_alternative<I, const T>
+template<std::size_t I, class T> struct variant_alternative<I, const T>
 {
-    using type = std::add_const_t<Variant_alternative_t<I, T>>;
+    using type = std::add_const_t<variant_alternative_t<I, T>>;
 };
 
-template<std::size_t I, class T> struct Variant_alternative<I, volatile T>
+template<std::size_t I, class T> struct variant_alternative<I, volatile T>
 {
-    using type = std::add_volatile_t<Variant_alternative_t<I, T>>;
+    using type = std::add_volatile_t<variant_alternative_t<I, T>>;
 };
 
-template<std::size_t I, class T> struct Variant_alternative<I, const volatile T>
+template<std::size_t I, class T> struct variant_alternative<I, const volatile T>
 {
-    using type = std::add_cv_t<Variant_alternative_t<I, T>>;
+    using type = std::add_cv_t<variant_alternative_t<I, T>>;
 };
 
 inline constexpr std::size_t variant_npos = -1;
 
-// this can be done like that since std::monostace is just a placeholder
+template<class T, class... Alternatives> constexpr bool
+holds_alternative(const Variant<Alternatives...>& variant) noexcept
+{
+    static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
+    return (variant.index() == element_pos_v<T, Alternatives...>);
+}
+
 struct Monostate
 {};
 
@@ -233,13 +239,6 @@ constexpr bool operator<=(Monostate, Monostate) noexcept
 constexpr bool operator>=(Monostate, Monostate) noexcept
 {
     return true;
-}
-
-template<class T, class... Alternatives> constexpr bool
-holds_alternative(const Variant<Alternatives...>& variant) noexcept
-{
-    static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
-    return (variant.index() == element_pos_v<T, Alternatives...>);
 }
 
 /**
@@ -272,17 +271,18 @@ template<typename... Alternatives> class Variant
       : _impl()
     {}
 
-    constexpr Variant(const Variant& other) : _impl(other) {}
+    constexpr Variant(const Variant& other) : _impl(other._impl) {}
 
     constexpr Variant(Variant&& other) noexcept(
       (std::is_nothrow_move_constructible_v<Alternatives> && ...))
-      : _impl(other)
+      : _impl(std::forward<WrappedType>(other._impl))
     {}
 
     // FIXME: Commented out -> type deduced as const char[] for std::string
-    template<class T/*,
+    template<class T,
+             typename = std::enable_if_t<!std::is_same_v<Variant, std::decay_t<T>>>/*,
              size_t I   = element_pos_v<T, Alternatives...>,
-             class Type = Variant_alternative_t<I, Variant>*/>
+             class Type = variant_alternative_t<I, Variant>*/>
     constexpr Variant(T&& t) noexcept/*(std::is_nothrow_constructible_v<Type, T>)*/
       : _impl(std::forward<T>(t))
     {}
@@ -329,8 +329,9 @@ template<typename... Alternatives> class Variant
     }
 
     template<class T,
+             typename = std::enable_if_t<!std::is_same_v<Variant, std::decay_t<T>>>,
              size_t I   = element_pos_v<T, Alternatives...>,
-             class Type = Variant_alternative_t<I, Variant>>
+             class Type = variant_alternative_t<I, Variant>>
     Variant&
     operator=(T&& t) noexcept(std::is_nothrow_assignable_v<Type&, T>&&
                                 std::is_nothrow_constructible_v<Type&, T>)
@@ -368,8 +369,8 @@ template<typename... Alternatives> class Variant
     }
 
     template<size_t I, class... Args> typename std::enable_if<
-      std::is_constructible_v<Variant_alternative_t<I, Variant>, Args...>,
-      Variant_alternative_t<I, Variant>&>::type
+      std::is_constructible_v<variant_alternative_t<I, Variant>, Args...>,
+      variant_alternative_t<I, Variant>&>::type
     emplace(Args&&... args)
     {
         static_assert(I < sizeof...(Args),
@@ -378,10 +379,10 @@ template<typename... Alternatives> class Variant
     }
 
     template<size_t I, class U, class... Args> typename std::enable_if<
-      std::is_constructible_v<Variant_alternative_t<I, Variant>,
+      std::is_constructible_v<variant_alternative_t<I, Variant>,
                               std::initializer_list<U>&,
                               Args...>,
-      Variant_alternative_t<I, Variant>&>::type
+      variant_alternative_t<I, Variant>&>::type
     emplace(std::initializer_list<U> il, Args&&... args)
     {
         static_assert(I < sizeof...(Args),
@@ -401,6 +402,8 @@ template<typename... Alternatives> class Variant
  private:
     // wrapped member
     std::variant<Alternatives...> _impl;
+    using WrappedType = std::variant<Alternatives...>;
+
 };
 
 /**
@@ -418,7 +421,7 @@ swap(Variant<Alternatives...>& lhs, Variant<Alternatives...>& rhs)
 }
 
 template<std::size_t I, class... Alternatives>
-constexpr Variant_alternative_t<I, Variant<Alternatives...>>&
+constexpr variant_alternative_t<I, Variant<Alternatives...>>&
 get(Variant<Alternatives...>& v)
 {
     static_assert(I < sizeof...(Alternatives),
@@ -427,7 +430,7 @@ get(Variant<Alternatives...>& v)
 }
 
 template<std::size_t I, class... Alternatives>
-constexpr Variant_alternative_t<I, Variant<Alternatives...>>&&
+constexpr variant_alternative_t<I, Variant<Alternatives...>>&&
 get(Variant<Alternatives...>&& v)
 {
     static_assert(I < sizeof...(Alternatives),
@@ -436,7 +439,7 @@ get(Variant<Alternatives...>&& v)
 }
 
 template<std::size_t I, class... Alternatives>
-constexpr const Variant_alternative_t<I, Variant<Alternatives...>>&
+constexpr const variant_alternative_t<I, Variant<Alternatives...>>&
 get(Variant<Alternatives...>& v)
 {
     static_assert(I < sizeof...(Alternatives),
@@ -445,7 +448,7 @@ get(Variant<Alternatives...>& v)
 }
 
 template<std::size_t I, class... Alternatives>
-constexpr const Variant_alternative_t<I, Variant<Alternatives...>>&&
+constexpr const variant_alternative_t<I, Variant<Alternatives...>>&&
 get(Variant<Alternatives...>&& v)
 {
     static_assert(I < sizeof...(Alternatives),
@@ -461,13 +464,13 @@ visit(Visitor&& vis, Variants&&... vars)
 }
 
 template<std::size_t I, class... Alternatives>
-constexpr std::add_pointer_t<Variant_alternative_t<I, Variant<Alternatives...>>>
+constexpr std::add_pointer_t<variant_alternative_t<I, Variant<Alternatives...>>>
 get_if(Variant<Alternatives...>* pv) noexcept
 {
     static_assert(I < sizeof...(Alternatives),
                   "Index must be in range of alternatives number");
     static_assert(! std::is_void_v<
-                    Variant_alternative_t<I, Variant<Alternatives...>>>,
+                    variant_alternative_t<I, Variant<Alternatives...>>>,
                   "Indexed type can't be void");
     if (pv && pv->index() == I)
     {
@@ -477,13 +480,13 @@ get_if(Variant<Alternatives...>* pv) noexcept
 }
 
 template<std::size_t I, class... Alternatives> constexpr std::add_pointer_t<
-  const Variant_alternative_t<I, Variant<Alternatives...>>>
+  const variant_alternative_t<I, Variant<Alternatives...>>>
 get_if(const Variant<Alternatives...>* pv) noexcept
 {
     static_assert(I < sizeof...(Alternatives),
                   "Index must be in range of alternatives number");
     static_assert(! std::is_void_v<
-                    Variant_alternative_t<I, Variant<Alternatives...>>>,
+                    variant_alternative_t<I, Variant<Alternatives...>>>,
                   "Indexed type can't be void");
     if (pv && pv->index() == I)
     {
