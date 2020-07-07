@@ -77,6 +77,18 @@ TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
     v1 = v2;
 }
 
+TEST_CASE("Variant index", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    std::variant<int, std::string> v;
+    CHECK(v.index() == 0);
+
+    v = 12;
+    CHECK(v.index() == 0);
+
+    v = "abc";
+    CHECK(v.index() == 1);
+}
+
 TEST_CASE("variant_size", "[SWS_CORE], [SWS_CORE_01601]")
 {
     CHECK(core::variant_size_v<core::Variant<>> == 0);
