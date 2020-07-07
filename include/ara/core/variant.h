@@ -153,6 +153,9 @@ struct element_pos<T, Head, Alternatives...>
  */
 template<class T, class... Alternatives> constexpr std::size_t element_pos_v =
   element_pos<T, Alternatives...>::value;
+
+template<std::size_t I, class... Ts>
+  static constexpr bool is_in_range_v = (I < sizeof...(Ts));
 }  // namespace
 
 // forward declaration
@@ -254,9 +257,20 @@ template<typename... Alternatives> class Variant
 {
  private:
     // helpers
-    template<std::size_t I> using T_i =
-      typename pack_element<I, Alternatives...>::type;
+    template<bool Condition>
+    static constexpr bool not_= ! Condition;
+
+    template<class T>
+    static constexpr bool equals_self_v = std::is_same_v<Variant, std::decay_t<T>>;
+
+    template<std::size_t I,
+             typename = std::enable_if_t<is_in_range_v<I, Alternatives...>> >
+    using T_i = variant_alternative_t<I, Variant>;
     using T_0 = T_i<0>;
+
+    // template<std::size_t I,
+    //          typename = std::enable_if_t<_not<equals_self_v>>>
+    // using resolved_type_t =
 
  public:
     static_assert(sizeof...(Alternatives) > 0,
@@ -280,7 +294,7 @@ template<typename... Alternatives> class Variant
 
     // FIXME: Commented out -> type deduced as const char[] for std::string
     template<class T,
-             typename = std::enable_if_t<!std::is_same_v<Variant, std::decay_t<T>>>/*,
+             typename = std::enable_if_t<not_<equals_self_v<T>>>/*,
              size_t I   = element_pos_v<T, Alternatives...>,
              class Type = variant_alternative_t<I, Variant>*/>
     constexpr Variant(T&& t) noexcept/*(std::is_nothrow_constructible_v<Type, T>)*/
@@ -329,7 +343,7 @@ template<typename... Alternatives> class Variant
     }
 
     template<class T,
-             typename = std::enable_if_t<!std::is_same_v<Variant, std::decay_t<T>>>,
+             typename = std::enable_if_t<not_<equals_self_v<T>>>,
              size_t I   = element_pos_v<T, Alternatives...>,
              class Type = variant_alternative_t<I, Variant>>
     Variant&
