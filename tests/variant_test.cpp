@@ -16,13 +16,13 @@ TEST_CASE("Variant default constructor", "[SWS_CORE], [SWS_CORE_01601]")
 TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
     {
-        const std::variant<int, std::string> v1{"abc"};
-        std::variant<int, std::string> v2(v1);
+        const core::Variant<int, std::string> v1{"abc"};
+        core::Variant<int, std::string>       v2(v1);
         CHECK(v2.index() == 1);
     }
     {
-        std::variant<int, std::string> v1{"abc"};
-        std::variant<int, std::string> v2(v1);
+        core::Variant<int, std::string> v1{"abc"};
+        core::Variant<int, std::string> v2(v1);
         CHECK(v2.index() == 1);
     }
 }
@@ -30,13 +30,13 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
 TEST_CASE("Variant move constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
     {
-        const std::variant<int, std::string> v1{"abc"};
-        std::variant<int, std::string> v3(std::move(v1));
+        const core::Variant<int, std::string> v1{"abc"};
+        core::Variant<int, std::string>       v3(std::move(v1));
         CHECK(v3.index() == 1);
     }
     {
-        std::variant<int, std::string> v1{"abc"};
-        std::variant<int, std::string> v3(std::move(v1));
+        core::Variant<int, std::string> v1{"abc"};
+        core::Variant<int, std::string> v3(std::move(v1));
         CHECK(v3.index() == 1);
     }
 }
@@ -55,18 +55,18 @@ TEST_CASE("Variant converting constructor", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    core::Variant<int, float> vTypeSimple {std::in_place_type<int>, 10.5};
+    core::Variant<int, float> vTypeSimple{std::in_place_type<int>, 10.5};
     CHECK(vTypeSimple.index() == 0);
 
-    core::Variant<int, float> vIndexSimple {std::in_place_index<1>, 10.5};
+    core::Variant<int, float> vIndexSimple{std::in_place_index<1>, 10.5};
     CHECK(vIndexSimple.index() == 1);
 
-    core::Variant<std::string, std::vector<int>> vTypeList {std::in_place_type<std::vector<int>>,
-                                                            {1, 2, 3}};
+    core::Variant<std::string, std::vector<int>>
+      vTypeList{std::in_place_type<std::vector<int>>, {1, 2, 3}};
     CHECK(vTypeList.index() == 1);
 
-    core::Variant<std::string, std::vector<int>> vIndexList {std::in_place_index<1>,
-                                                            {1, 2, 3}};
+    core::Variant<std::string, std::vector<int>>
+      vIndexList{std::in_place_index<1>, {1, 2, 3}};
     CHECK(vIndexList.index() == 1);
 }
 
@@ -79,7 +79,7 @@ TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Variant index", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    std::variant<int, std::string> v;
+    core::Variant<int, std::string> v;
     CHECK(v.index() == 0);
 
     v = 12;
@@ -87,6 +87,19 @@ TEST_CASE("Variant index", "[SWS_CORE], [SWS_CORE_01601]")
 
     v = "abc";
     CHECK(v.index() == 1);
+}
+
+TEST_CASE("Variant emplace", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    core::Variant<int> v1;
+    v1.emplace<0>(1);
+    v1.emplace<int>(2);
+
+    core::Variant<std::string> v2;
+    v2.emplace<0>("abc");
+    //v2.emplace<std::string>("abc");
+
+
 }
 
 TEST_CASE("variant_size", "[SWS_CORE], [SWS_CORE_01601]")
@@ -120,7 +133,7 @@ TEST_CASE("variant_alternative", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("holds_alternative", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    core::Variant<int, std::string> v {"abc"};
+    core::Variant<int, std::string> v{"abc"};
     CHECK(! core::holds_alternative<int>(v));
     CHECK(core::holds_alternative<std::string>(v));
     v = 1;
