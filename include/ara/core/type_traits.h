@@ -116,7 +116,7 @@ template<class T> using remove_cvref_t = typename std::remove_cvref<T>::type;
 template<class... Ts> struct TypeList
 {};
 
-template<class T, class Types> struct type_occurrence;  // undefined case
+template<template<class...> class Condition, class T, class Types> struct type_occurrence;  // undefined case
 
 /**
  * Count type occurrence in list of types
@@ -127,8 +127,9 @@ template<class T, class Types> struct type_occurrence;  // undefined case
  * @tparam Ts collection of types to check
  *
  */
-template<class T, class... Ts>
-struct type_occurrence<T, TypeList<Ts...>> : std::integral_constant<size_t, 0>
+template<template<class...> class Condition, class T, class... Ts>
+struct type_occurrence<Condition, T, TypeList<Ts...>>
+  : std::integral_constant<size_t, 0>
 {};
 
 /**
@@ -138,12 +139,13 @@ struct type_occurrence<T, TypeList<Ts...>> : std::integral_constant<size_t, 0>
  * visited Head constexpr counter value is increased.
  *
  **/
-template<class T, class Head, class... Tail>
-struct type_occurrence<T, TypeList<Head, Tail...>>
-  : std::integral_constant<size_t,
-                           is_same_v<T, Head>
-                             ? type_occurrence<T, TypeList<Tail...>>::value + 1
-                             : type_occurrence<T, TypeList<Tail...>>::value>
+template<template<class...> class Condition, class T, class Head, class... Tail>
+struct type_occurrence<Condition, T, TypeList<Head, Tail...>>
+  : std::integral_constant<
+      size_t,
+      Condition<T, Head>::value
+        ? type_occurrence<Condition, T, TypeList<Tail...>>::value + 1
+        : type_occurrence<Condition, T, TypeList<Tail...>>::value>
 {};
 
 /**
@@ -154,8 +156,29 @@ struct type_occurrence<T, TypeList<Head, Tail...>>
  * @return value size_t constexpr number of occurrence
  *
  */
-template<class T, class... Ts> constexpr std::size_t type_occurrence_v =
-  type_occurrence<T, TypeList<Ts...>>::value;
+template<template<class...> class Condition, class T, class... Ts>
+constexpr std::size_t type_occurrence_v =
+  type_occurrence<Condition, T, TypeList<Ts...>>::value;
+
+template<bool B, template<class...> class Condition, class T, class... Ts>
+struct find_matching_type;
+
+template<class T, template<class...> class Condition, class Head, class... Tail>
+struct find_matching_type<false, Condition, T, Head, Tail...>
+  : std::conditional_t<Condition<T, Head>::value,
+                       find_matching_type<true, Condition, T, Head, Tail...>,
+                       find_matching_type<false, Condition, T, Tail...>>
+{};
+
+template<class T, template<class...> class Condition, class Head, class... Tail>
+struct find_matching_type<true, Condition, T, Head, Tail...>
+{
+    using type = Head;
+};
+
+template<template<class...> class Condition, class T, class... Ts>
+using find_matching_type_t =
+  find_matching_type<false, Condition, T, Ts...>::type;
 
 /**
  * Checks if type is unique in list of types
@@ -168,10 +191,13 @@ template<class T, class... Ts> constexpr std::size_t type_occurrence_v =
  * @return false otherwise
  */
 template<class T, class... Ts> constexpr bool
-  is_unique_v = (type_occurrence_v<T, Ts...> == 1);
+  is_unique_v = (type_occurrence_v<std::is_same, T, Ts...> == 1);
 
-//TODO: create is_unique for is_convertable<T, Ti>
+template<class T, class... Ts> constexpr bool
+  is_convertible_unique_v = (type_occurrence_v<std::is_convertible, T, Ts...> == 1);
 
+template<class T, class... Ts> constexpr bool
+  is_any_convertible_v = (type_occurrence_v<std::is_convertible, T, Ts...> > 0);
 /**
  * Find type in list of types by index
  *

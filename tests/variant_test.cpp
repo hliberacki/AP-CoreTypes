@@ -85,7 +85,7 @@ TEST_CASE("Variant index", "[SWS_CORE], [SWS_CORE_01601]")
     v = 12;
     CHECK(v.index() == 0);
 
-    v = std::string("abc");
+    v = "abc";
     CHECK(v.index() == 1);
 }
 
