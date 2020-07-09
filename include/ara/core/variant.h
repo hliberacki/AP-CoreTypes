@@ -8,154 +8,15 @@
 #ifndef ARA_CORE_VARIANT_H_
 #define ARA_CORE_VARIANT_H_
 
-#include "utility.h"    //in_place_t
-#include <type_traits>  //
-#include <variant>      //std::variant
+#include "type_traits.h"  //
+#include "utility.h"      //in_place_t
+#include <variant>        //std::variant
 
-namespace ara::core  // is_reference_v
-{
+namespace ara::core {
 
 // helpers - custom type traits
 namespace {
 
-/**
- * Placeholder for variadic types.
- *
- * Empty helper struct which represents place holder for variadic types.
- *
- * @tparam Ts variadic types
- *
- */
-template<class... Ts> struct TypeList
-{};
-
-template<class T, class Types> struct type_occurrence;  // undefined case
-
-/**
- * Count type occurrence in list of types
- *
- * Type trait to count number of occurrence for given T type in types TS
- *
- * @tparam T type which occurrence is counted
- * @tparam Ts collection of types to check
- *
- */
-template<class T, class... Ts>
-struct type_occurrence<T, TypeList<Ts...>> : std::integral_constant<size_t, 0>
-{};
-
-/**
- * specialization used for metaprogramming - recursively.
- *
- * Template traverse all given types and if given T is the same as current
- * visited Head constexpr counter value is increased.
- *
- **/
-template<class T, class Head, class... Tail>
-struct type_occurrence<T, TypeList<Head, Tail...>>
-  : std::integral_constant<size_t,
-                           std::is_same_v<T, Head>
-                             ? type_occurrence<T, TypeList<Tail...>>::value + 1
-                             : type_occurrence<T, TypeList<Tail...>>::value>
-{};
-
-/**
- * Helper constexpr value for type_occurrence.
- *
- * @tparam T type which occupance is counted
- * @tparam Ts collection of types to check
- * @return value size_t constexpr number of occurrence
- *
- */
-template<class T, class... Tail> constexpr std::size_t type_occurrence_v =
-  type_occurrence<T, TypeList<Tail...>>::value;
-
-/**
- * Find type in list of types by index
- *
- * Type trait to return type which is inside of list of types Tail, on specified
- * index I
- *
- * @tparam I index of searched type
- * @tparam Tail collection of types to check
- */
-template<std::size_t I, class... Tail> struct pack_element;  // undefined case
-
-/**
- * specialization used for metaprogramming - recursively.
- *
- * Template traverse Index decrementing it recursively
- *
- **/
-template<std::size_t I, class Head, class... Tail>
-struct pack_element<I, Head, Tail...> : pack_element<I - 1, Tail...>
-{};
-
-/**
- * specialization used for metaprogramming - recursively.
- *
- * In case Index is 0, Head is returned as result type
- *
- **/
-template<class Head, class... Tail> struct pack_element<0, Head, Tail...>
-{
-    using type = Head;
-};
-
-/**
- * Checks if type is unique in list of types
- *
- * contant expression checking if given T type is unique in list of types Ts
- *
- * @tparam I index of searched type
- * @tparam Tail collection of types to check
- * @return true if type is unique
- * @return false otherwise
- */
-template<class T, class... Ts> constexpr bool
-  is_unique_v = (type_occurrence_v<T, Ts...> == 1);
-
-/**
- * Find Index of type in list of types.
- *
- * Type trait to return Index of type T which is inside of list of types Alternatives
- *
- * @tparam T Type of which index is searched
- * @tparam Alternatives collection of types to check
- * @return Index of first found T in Alternatives
- * @return sizeof...(Alternatives) otherwise
- */
-template<class T, class... Alternatives> struct element_pos
-  : std::integral_constant<std::size_t, 0>
-{};
-
-/**
- * specialization used for metaprogramming - recursively.
- *
- * Template traverse all types recursively, stops if T is found
- *
- **/
-template<class T, class Head, class... Alternatives>
-struct element_pos<T, Head, Alternatives...>
-  : std::integral_constant<
-      size_t,
-      std::is_same_v<T, Head> ? 0 : element_pos<T, Alternatives...>::value + 1>
-{};
-
-/**
- * Helper constexpr value for element_pos.
- *
- * @tparam T which index if searched for
- * @tparam Alternatives collection of types to check
- * @return value size_t constexpr index of T
- * @return sizeof...(Alternatives) otherwise
- *
- */
-template<class T, class... Alternatives> constexpr std::size_t element_pos_v =
-  element_pos<T, Alternatives...>::value;
-
-template<std::size_t I, class... Ts>
-  static constexpr bool is_in_range_v = (I < sizeof...(Ts));
 }  // namespace
 
 // forward declaration
@@ -257,47 +118,101 @@ template<typename... Alternatives> class Variant
 {
  private:
     // helpers
-    template<bool Condition>
-    static constexpr bool not_= ! Condition;
 
-    template<class T>
-    static constexpr bool equals_self_v = std::is_same_v<Variant, std::decay_t<T>>;
+    template<class T> static constexpr bool equals_self_v =
+      is_same_v<Variant, decay_t<T>>;
+
+    /**
+     * Below section is (too?) heavy inspiread by GCC
+     * https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/include/std/variant.
+     * For the time while I am writing this code, I can not find better solution
+     * to solve it. It has to be corrected and made more unique in the next
+     * releases!
+     *
+     * FIXME: not used yet, there are still issues.
+     */
+    // Section begin
+    template<std::size_t I, class T, class U, typename = void>
+    struct CreateImaginaryFoo
+    {
+        void staticImaginary();
+    };
+
+    template<std::size_t I, class T, class U>
+    struct CreateImaginaryFoo<I,
+                              T,
+                              U,
+                              conditional_t<is_convertible_v<U, T>, T, void>>
+    {
+        static std::integral_constant<size_t, I> staticImaginary(U);
+    };
+
+    template<class T,
+             class Var,
+             typename Sequence = std::make_index_sequence<variant_size_v<Var>>>
+    struct CreateImaginaries;
+
+    template<class T, class... Ts, std::size_t... Indexes>
+    struct CreateImaginaries<T, Variant<Ts...>, std::index_sequence<Indexes...>>
+    {
+        using CreateImaginaryFoo<Indexes, T, Ts>::staticImaginary...;
+    };
+
+    template<class T, class Var> using resolved_type_t =
+      decltype(CreateImaginaries<T, Var>::staticImaginary(std::declval<T>()));
+
+    template<class T, class Var, typename = void> struct matching_index
+      : std::integral_constant<std::size_t, variant_npos>
+    {};
+
+    template<class T, class Var>
+    struct matching_index<T, Var, void_t<resolved_type_t<T, Var>>>
+      : resolved_type_t<T, Var>
+    {};
+
+    template<class T> static constexpr size_t matching_index_v =
+      matching_index<T, Variant>::value;
+    // Section end
+
 
     template<std::size_t I,
-             typename = std::enable_if_t<is_in_range_v<I, Alternatives...>> >
+             typename = requires_<is_in_range_v<I, Alternatives...>>>
     using T_i = variant_alternative_t<I, Variant>;
     using T_0 = T_i<0>;
 
-    // template<std::size_t I,
-    //          typename = std::enable_if_t<_not<equals_self_v>>>
-    // using resolved_type_t =
+    template<class T, typename = requires_<not_<equals_self_v<T>>>>
+    using matching_type = T_i<matching_index_v<T>>;
+
 
  public:
     static_assert(sizeof...(Alternatives) > 0,
                   "Variant must have at least one alternative");
-    static_assert(! (std::is_reference_v<Alternatives> || ...),
+    static_assert(not_<(is_reference_v<Alternatives> || ...)>,
                   "Variant must have no reference alternative");
-    static_assert(! (std::is_void_v<Alternatives> || ...),
+    static_assert(not_<(is_void_v<Alternatives> || ...)>,
                   "variant must have no void alternative");
 
     // Constructors
-    constexpr Variant() noexcept(std::is_nothrow_default_constructible_v<T_0>)
+    constexpr Variant() noexcept(is_nothrow_default_constructible_v<T_0>)
       : _impl()
     {}
 
     constexpr Variant(const Variant& other) : _impl(other._impl) {}
 
     constexpr Variant(Variant&& other) noexcept(
-      (std::is_nothrow_move_constructible_v<Alternatives> && ...))
+      (is_nothrow_move_constructible_v<Alternatives> && ...))
       : _impl(std::forward<WrappedType>(other._impl))
     {}
 
-    // FIXME: Commented out -> type deduced as const char[] for std::string
+    // FIXME: Commented out -> overload resultion issues. noexcept can't be specified
     template<class T,
-             typename = std::enable_if_t<not_<equals_self_v<T>>>/*,
+             typename    = requires_<not_<equals_self_v<T>>>,
+             typename    = requires_<not_<is_in_place_v<T>>>/*,
+             typename Ti = matching_type<T&&>,
+             typename    = requires_<is_unique_v<Ti> && is_constructible_v<Ti, T>>,
              size_t I   = element_pos_v<T, Alternatives...>,
              class Type = variant_alternative_t<I, Variant>*/>
-    constexpr Variant(T&& t) noexcept/*(std::is_nothrow_constructible_v<Type, T>)*/
+    constexpr Variant(T&& t) noexcept/*(is_nothrow_constructible_v<Ti, T>)*/
       : _impl(std::forward<T>(t))
     {}
 
@@ -334,21 +249,21 @@ template<typename... Alternatives> class Variant
         return *this;
     }
 
-    constexpr Variant& operator=(Variant&& rhs) noexcept(((
-      std::is_nothrow_move_constructible_v<
-        Alternatives> && std::is_nothrow_move_assignable_v<Alternatives>) &&...))
+    constexpr Variant& operator=(Variant&& rhs) noexcept(
+      ((is_nothrow_move_constructible_v<
+          Alternatives> && is_nothrow_move_assignable_v<Alternatives>) &&...))
     {
         _impl = std::move(rhs._impl);
         return *this;
     }
 
+    // FIXME: Commented out -> overload resultion issues. noexcept can't be specified
     template<class T,
-             typename = std::enable_if_t<not_<equals_self_v<T>>>,
+             typename   = requires_<not_<equals_self_v<T>>>/*,
              size_t I   = element_pos_v<T, Alternatives...>,
-             class Type = variant_alternative_t<I, Variant>>
-    Variant&
-    operator=(T&& t) noexcept(std::is_nothrow_assignable_v<Type&, T>&&
-                                std::is_nothrow_constructible_v<Type&, T>)
+             class Type = variant_alternative_t<I, Variant>*/>
+    Variant& operator=(T&& t) noexcept/*(
+      is_nothrow_assignable_v<Type&, T>&& is_nothrow_constructible_v<Type&, T>)*/
     {
         _impl = _impl.template operator=<T>(std::forward<T>(t));
         return *this;
@@ -362,19 +277,18 @@ template<typename... Alternatives> class Variant
     }
 
     // Modifiers
-    template<typename T, class... Args> typename std::enable_if<
-      std::is_constructible_v<T, Args...> && is_unique_v<T, Args...>,
-      T&>::type
+    template<typename T, class... Args>
+    requires_<is_constructible_v<T, Args...> && is_unique_v<T, Args...>, T&>
     emplace(Args&&... args)
     {
         return _impl.template emplace<T, Args...>(std::forward<Args>(args)...);
     }
 
-    template<class T, class U, class... Args> typename std::enable_if<
-      std::is_constructible_v<T,
-                              std::initializer_list<U>&,
-                              Args...> && is_unique_v<T, Args...>,
-      T&>::type
+    template<class T, class U, class... Args>
+    requires_<is_constructible_v<T,
+                                 std::initializer_list<U>&,
+                                 Args...> && is_unique_v<T, Args...>,
+              T&>
     emplace(std::initializer_list<U> il, Args&&... args)
     {
         return _impl.template emplace<T, U, Args...>(il,
@@ -382,21 +296,21 @@ template<typename... Alternatives> class Variant
                                                        args)...);
     }
 
-    template<size_t I, class... Args> typename std::enable_if<
-      std::is_constructible_v<variant_alternative_t<I, Variant>, Args...>,
-      variant_alternative_t<I, Variant>&>::type
+    template<size_t I, class... Args>
+    requires_<is_constructible_v<variant_alternative_t<I, Variant>, Args...>,
+              variant_alternative_t<I, Variant>&>
     emplace(Args&&... args)
     {
         static_assert(I < sizeof...(Args),
                       "Index must be in range of alternatives number");
-        return _impl.template emplace<I, Args...>(std::forward<Args>(args)...);
+        return _impl.template emplace<I>(std::forward<Args>(args)...);
     }
 
-    template<size_t I, class U, class... Args> typename std::enable_if<
-      std::is_constructible_v<variant_alternative_t<I, Variant>,
-                              std::initializer_list<U>&,
-                              Args...>,
-      variant_alternative_t<I, Variant>&>::type
+    template<size_t I, class U, class... Args>
+    requires_<is_constructible_v<variant_alternative_t<I, Variant>,
+                                 std::initializer_list<U>&,
+                                 Args...>,
+              variant_alternative_t<I, Variant>&>
     emplace(std::initializer_list<U> il, Args&&... args)
     {
         static_assert(I < sizeof...(Args),
@@ -407,8 +321,8 @@ template<typename... Alternatives> class Variant
     }
 
     void swap(Variant& rhs) noexcept(
-      ((std::is_nothrow_move_constructible_v<
-          Alternatives> && std::is_nothrow_swappable_v<Alternatives>) &&...))
+      ((is_nothrow_move_constructible_v<
+          Alternatives> && is_nothrow_swappable_v<Alternatives>) &&...))
     {
         _impl.swap(rhs._impl);
     }
@@ -417,7 +331,6 @@ template<typename... Alternatives> class Variant
     // wrapped member
     std::variant<Alternatives...> _impl;
     using WrappedType = std::variant<Alternatives...>;
-
 };
 
 /**
@@ -483,8 +396,8 @@ get_if(Variant<Alternatives...>* pv) noexcept
 {
     static_assert(I < sizeof...(Alternatives),
                   "Index must be in range of alternatives number");
-    static_assert(! std::is_void_v<
-                    variant_alternative_t<I, Variant<Alternatives...>>>,
+    static_assert(not_<is_void_v<
+                    variant_alternative_t<I, Variant<Alternatives...>>>>,
                   "Indexed type can't be void");
     if (pv && pv->index() == I)
     {
@@ -499,8 +412,8 @@ get_if(const Variant<Alternatives...>* pv) noexcept
 {
     static_assert(I < sizeof...(Alternatives),
                   "Index must be in range of alternatives number");
-    static_assert(! std::is_void_v<
-                    variant_alternative_t<I, Variant<Alternatives...>>>,
+    static_assert(not_<is_void_v<
+                    variant_alternative_t<I, Variant<Alternatives...>>>>,
                   "Indexed type can't be void");
     if (pv && pv->index() == I)
     {
@@ -514,7 +427,7 @@ template<class T, class... Alternatives> constexpr std::add_pointer_t<T>
 get_if(Variant<Alternatives...>* pv) noexcept
 {
     static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
-    static_assert(! std::is_void_v<T>, "T can't be void");
+    static_assert(not_<is_void_v<T>>, "T can't be void");
     return get_if<element_pos_v<T, Alternatives...>>(pv);
 }
 
@@ -522,7 +435,7 @@ template<class T, class... Alternatives> constexpr std::add_pointer_t<const T>
 get_if(const Variant<Alternatives...>* pv) noexcept
 {
     static_assert(is_unique_v<T, Alternatives...>, "T must be unique");
-    static_assert(! std::is_void_v<T>, "T can't be void");
+    static_assert(not_<is_void_v<T>>, "T can't be void");
     return get_if<element_pos_v<T, Alternatives...>>(pv);
 }
 
