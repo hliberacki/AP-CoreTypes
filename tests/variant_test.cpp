@@ -75,6 +75,8 @@ TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
     core::Variant<int, std::string> v1{12};
     core::Variant<int, std::string> v2{"abc"};
     v1 = v2;
+    core::Variant<int, std::string> v3;
+    v3 = "abc";
 }
 
 TEST_CASE("Variant index", "[SWS_CORE], [SWS_CORE_01601]")
@@ -89,18 +91,24 @@ TEST_CASE("Variant index", "[SWS_CORE], [SWS_CORE_01601]")
     CHECK(v.index() == 1);
 }
 
-// TEST_CASE("Variant emplace", "[SWS_CORE], [SWS_CORE_01601]")
-// {
-//     core::Variant<int> v1;
-//     v1.emplace<0>(1);
-//     v1.emplace<int>(2);
+TEST_CASE("Variant emplace", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    core::Variant<int, std::string> v;
 
-//     core::Variant<std::string> v2;
-//     v2.emplace<0>("abc");
-//     //v2.emplace<std::string>("abc");
+    v.emplace<0>(1);
+    CHECK(v.index() == 0);
 
+    v.emplace<1>("abc");
+    CHECK(v.index() == 1);
 
-// }
+    v.emplace<std::string>("abc");
+    CHECK(v.index() == 1);
+
+    core::Variant<std::string, std::string> vNotUnique;
+
+    vNotUnique.emplace<0>("abc");
+    CHECK(vNotUnique.index() == 0);
+}
 
 TEST_CASE("variant_size", "[SWS_CORE], [SWS_CORE_01601]")
 {

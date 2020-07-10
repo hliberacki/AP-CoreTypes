@@ -122,67 +122,10 @@ template<typename... Alternatives> class Variant
     template<class T> static constexpr bool equals_self_v =
       is_same_v<Variant, decay_t<T>>;
 
-    /**
-     * Below section is (too?) heavy inspiread by GCC
-     * https://github.com/gcc-mirror/gcc/blob/master/libstdc%2B%2B-v3/include/std/variant.
-     * For the time while I am writing this code, I can not find better solution
-     * to solve it. It has to be corrected and made more unique in the next
-     * releases!
-     *
-     * FIXME: not used yet, there are still issues.
-     */
-    // Section begin
-    template<std::size_t I, class T, class U, typename = void>
-    struct CreateImaginaryFoo
-    {
-        void staticImaginary();
-    };
-
-    template<std::size_t I, class T, class U>
-    struct CreateImaginaryFoo<I,
-                              T,
-                              U,
-                              conditional_t<is_convertible_v<U, T>, T, void>>
-    {
-        static std::integral_constant<size_t, I> staticImaginary(U);
-    };
-
-    template<class T,
-             class Var,
-             typename Sequence = std::make_index_sequence<variant_size_v<Var>>>
-    struct CreateImaginaries;
-
-    template<class T, class... Ts, std::size_t... Indexes>
-    struct CreateImaginaries<T, Variant<Ts...>, std::index_sequence<Indexes...>>
-    {
-        using CreateImaginaryFoo<Indexes, T, Ts>::staticImaginary...;
-    };
-
-    template<class T, class Var> using resolved_type_t =
-      decltype(CreateImaginaries<T, Var>::staticImaginary(std::declval<T>()));
-
-    template<class T, class Var, typename = void> struct matching_index
-      : std::integral_constant<std::size_t, variant_npos>
-    {};
-
-    template<class T, class Var>
-    struct matching_index<T, Var, void_t<resolved_type_t<T, Var>>>
-      : resolved_type_t<T, Var>
-    {};
-
-    template<class T> static constexpr size_t matching_index_v =
-      matching_index<T, Variant>::value;
-    // Section end
-
-
     template<std::size_t I,
              typename = requires_<is_in_range_v<I, Alternatives...>>>
     using T_i = variant_alternative_t<I, Variant>;
     using T_0 = T_i<0>;
-
-    template<class T, typename = requires_<not_<equals_self_v<T>>>>
-    using matching_type = T_i<matching_index_v<T>>;
-
 
  public:
     static_assert(sizeof...(Alternatives) > 0,
@@ -204,15 +147,11 @@ template<typename... Alternatives> class Variant
       : _impl(std::forward<WrappedType>(other._impl))
     {}
 
-    // FIXME: Commented out -> overload resultion issues. noexcept can't be specified
     template<class T,
              typename    = requires_<not_<equals_self_v<T>>>,
-             typename    = requires_<not_<is_in_place_v<T>>>/*,
-             typename Ti = matching_type<T&&>,
-             typename    = requires_<is_unique_v<Ti> && is_constructible_v<Ti, T>>,
-             size_t I   = element_pos_v<T, Alternatives...>,
-             class Type = variant_alternative_t<I, Variant>*/>
-    constexpr Variant(T&& t) noexcept/*(is_nothrow_constructible_v<Ti, T>)*/
+             typename    = requires_<not_<is_in_place_v<T>>>,
+             class Ti    = find_matching_type_t<std::is_convertible, T, Alternatives...>>
+    constexpr Variant(T&& t) noexcept(is_nothrow_constructible_v<Ti, std::decay_t<T>>)
       : _impl(std::forward<T>(t))
     {}
 
@@ -257,13 +196,11 @@ template<typename... Alternatives> class Variant
         return *this;
     }
 
-    // FIXME: Commented out -> overload resultion issues. noexcept can't be specified
     template<class T,
-             typename   = requires_<not_<equals_self_v<T>>>/*,
-             size_t I   = element_pos_v<T, Alternatives...>,
-             class Type = variant_alternative_t<I, Variant>*/>
-    Variant& operator=(T&& t) noexcept/*(
-      is_nothrow_assignable_v<Type&, T>&& is_nothrow_constructible_v<Type&, T>)*/
+             typename   = requires_<not_<equals_self_v<T>>>,
+             class Ti = find_matching_type_t<std::is_convertible, T, Alternatives...>>
+    Variant& operator=(T&& t) noexcept(
+      is_nothrow_assignable_v<Ti, std::decay_t<T>> && is_nothrow_constructible_v<Ti, std::decay_t<T>>)
     {
         _impl = _impl.template operator=<T>(std::forward<T>(t));
         return *this;
@@ -277,15 +214,16 @@ template<typename... Alternatives> class Variant
     }
 
     // Modifiers
-    template<typename T, class... Args>
-    requires_<is_constructible_v<T, Args...> && is_unique_v<T, Args...>, T&>
+    template<class T, class... Args>
+    requires_<is_constructible_v<std::decay_t<T>, Args...> && is_unique_v<T, Alternatives...>, T&>
     emplace(Args&&... args)
     {
-        return _impl.template emplace<T, Args...>(std::forward<Args>(args)...);
+        constexpr std::size_t index = element_pos_v<T, Alternatives...>;
+        return emplace<index>(std::forward<Args>(args)...);
     }
 
     template<class T, class U, class... Args>
-    requires_<is_constructible_v<T,
+    requires_<is_constructible_v<std::decay_t<T>,
                                  std::initializer_list<U>&,
                                  Args...> && is_unique_v<T, Args...>,
               T&>
@@ -301,7 +239,7 @@ template<typename... Alternatives> class Variant
               variant_alternative_t<I, Variant>&>
     emplace(Args&&... args)
     {
-        static_assert(I < sizeof...(Args),
+        static_assert(I < sizeof...(Alternatives),
                       "Index must be in range of alternatives number");
         return _impl.template emplace<I>(std::forward<Args>(args)...);
     }
@@ -313,7 +251,7 @@ template<typename... Alternatives> class Variant
               variant_alternative_t<I, Variant>&>
     emplace(std::initializer_list<U> il, Args&&... args)
     {
-        static_assert(I < sizeof...(Args),
+        static_assert(I < sizeof...(Alternatives),
                       "Index must be in range of alternatives number");
         return _impl.template emplace<I, U, Args...>(il,
                                                      std::forward<Args>(

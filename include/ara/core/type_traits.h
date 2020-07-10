@@ -106,6 +106,46 @@ template<class T> using remove_cvref_t = typename std::remove_cvref<T>::type;
 
 
 /**
+ * Find Index of type in list of types.
+ *
+ * Type trait to return Index of type T which is inside of list of types
+ * Alternatives
+ *
+ * @tparam T Type of which index is searched
+ * @tparam Ts collection of types to check
+ * @return Index of first found T in Alternatives
+ * @return sizeof...(Alternatives) otherwise
+ */
+template<class T, class... Ts> struct element_pos
+  : std::integral_constant<std::size_t, 0>
+{};
+
+/**
+ * specialization used for metaprogramming - recursively.
+ *
+ * Template traverse all types recursively, stops if T is found
+ *
+ **/
+template<class T, class Head, class... Tail>
+struct element_pos<T, Head, Tail...>
+  : std::integral_constant<
+      size_t,
+      is_same_v<T, Head> ? 0 : element_pos<T, Tail...>::value + 1>
+{};
+
+/**
+ * Helper constexpr value for element_pos.
+ *
+ * @tparam T which index if searched for
+ * @tparam Ts collection of types to check
+ * @return value size_t constexpr index of T
+ * @return sizeof...(Alternatives) otherwise
+ *
+ */
+template<class T, class... Ts> constexpr std::size_t element_pos_v =
+  element_pos<T, Ts...>::value;
+
+/**
  * Placeholder for variadic types.
  *
  * Empty helper struct which represents place holder for variadic types.
@@ -180,6 +220,9 @@ template<template<class...> class Condition, class T, class... Ts>
 using find_matching_type_t =
   find_matching_type<false, Condition, T, Ts...>::type;
 
+template<template<class...> class Condition, class T, class... Ts>
+  constexpr std::size_t find_matching_index_v = element_pos_v<find_matching_type_t<Condition, T, Ts...>, Ts...>;
+
 /**
  * Checks if type is unique in list of types
  *
@@ -230,45 +273,6 @@ template<class Head, class... Tail> struct pack_element<0, Head, Tail...>
     using type = Head;
 };
 
-/**
- * Find Index of type in list of types.
- *
- * Type trait to return Index of type T which is inside of list of types
- * Alternatives
- *
- * @tparam T Type of which index is searched
- * @tparam Ts collection of types to check
- * @return Index of first found T in Alternatives
- * @return sizeof...(Alternatives) otherwise
- */
-template<class T, class... Ts> struct element_pos
-  : std::integral_constant<std::size_t, 0>
-{};
-
-/**
- * specialization used for metaprogramming - recursively.
- *
- * Template traverse all types recursively, stops if T is found
- *
- **/
-template<class T, class Head, class... Tail>
-struct element_pos<T, Head, Tail...>
-  : std::integral_constant<
-      size_t,
-      is_same_v<T, Head> ? 0 : element_pos<T, Tail...>::value + 1>
-{};
-
-/**
- * Helper constexpr value for element_pos.
- *
- * @tparam T which index if searched for
- * @tparam Ts collection of types to check
- * @return value size_t constexpr index of T
- * @return sizeof...(Alternatives) otherwise
- *
- */
-template<class T, class... Ts> constexpr std::size_t element_pos_v =
-  element_pos<T, Ts...>::value;
 
 template<std::size_t I, class... Ts> static constexpr bool
   is_in_range_v = (I < sizeof...(Ts));
