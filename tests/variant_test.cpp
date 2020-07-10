@@ -97,6 +97,7 @@ TEST_CASE("Variant emplace", "[SWS_CORE], [SWS_CORE_01601]")
 
     v.emplace<0>(1);
     CHECK(v.index() == 0);
+    CHECK(ara::core::get<0>(v) == 1);
 
     v.emplace<1>("abc");
     CHECK(v.index() == 1);
