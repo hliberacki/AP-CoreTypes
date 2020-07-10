@@ -271,15 +271,25 @@ template<typename... Alternatives> class Variant
         _impl.swap(rhs._impl);
     }
 
-//friend methods
-template<std::size_t I, class... Ts>
-friend constexpr variant_alternative_t<I, Variant<Ts...>>& get(Variant<Ts...>& v);
-template<std::size_t I, class... Ts>
-friend constexpr variant_alternative_t<I, Variant<Ts...>>&& get(Variant<Ts...>&& v);
-template<std::size_t I, class... Ts>
-friend constexpr const variant_alternative_t<I, Variant<Ts...>>& get(const Variant<Ts...>& v);
-template<std::size_t I, class... Ts>
-friend constexpr const variant_alternative_t<I, Variant<Ts...>>&& get(const Variant<Ts...>&& v);
+    // friend methods
+    template<std::size_t I, class... Ts>
+    friend constexpr variant_alternative_t<I, Variant<Ts...>>&
+    get(Variant<Ts...>& v);
+    template<std::size_t I, class... Ts>
+    friend constexpr variant_alternative_t<I, Variant<Ts...>>&&
+    get(Variant<Ts...>&& v);
+    template<std::size_t I, class... Ts>
+    friend constexpr const variant_alternative_t<I, Variant<Ts...>>&
+    get(const Variant<Ts...>& v);
+    template<std::size_t I, class... Ts>
+    friend constexpr const variant_alternative_t<I, Variant<Ts...>>&&
+                                                        get(const Variant<Ts...>&& v);
+    template<class T, class... Ts> friend constexpr T&  get(Variant<Ts...>& v);
+    template<class T, class... Ts> friend constexpr T&& get(Variant<Ts...>&& v);
+    template<class T, class... Ts> friend constexpr const T&
+    get(const Variant<Ts...>& v);
+    template<class T, class... Ts> friend constexpr const T&&
+    get(const Variant<Ts...>&& v);
 
  private:
     // wrapped member
@@ -316,7 +326,7 @@ get(Variant<Alternatives...>&& v)
 {
     static_assert(I < sizeof...(Alternatives),
                   "Index must be in range of alternatives number");
-    return std::get<I>(std::forward<Variant<Alternatives...>>(v._impl));
+    return std::get<I>(std::forward<std::variant<Alternatives...>>(v._impl));
 }
 
 template<std::size_t I, class... Alternatives>
@@ -334,7 +344,28 @@ get(const Variant<Alternatives...>&& v)
 {
     static_assert(I < sizeof...(Alternatives),
                   "Index must be in range of alternatives number");
-    return std::get<I>(std::forward<Variant<Alternatives...>>(v._impl));
+    return std::get<I>(std::forward<std::variant<Alternatives...>>(v._impl));
+}
+
+template<class T, class... Alternatives> constexpr T&
+get(Variant<Alternatives...>& v)
+{
+    return std::get<T>(v._impl);
+}
+template<class T, class... Alternatives> constexpr T&&
+get(Variant<Alternatives...>&& v)
+{
+    return std::get<T>(std::forward<std::variant<Alternatives...>>(v._impl));
+}
+template<class T, class... Alternatives> constexpr const T&
+get(const Variant<Alternatives...>& v)
+{
+    return std::get<T>(v._impl);
+}
+template<class T, class... Alternatives> constexpr const T&&
+get(const Variant<Alternatives...>&& v)
+{
+    return std::get<T>(std::forward<std::variant<Alternatives...>>(v._impl));
 }
 
 template<class Visitor, class... Variants> constexpr decltype(auto)
