@@ -109,6 +109,40 @@ TEST_CASE("Variant emplace", "[SWS_CORE], [SWS_CORE_01601]")
 
     vNotUnique.emplace<0>("abc");
     CHECK(vNotUnique.index() == 0);
+
+    core::Variant<int, std::vector<int>> vInitList;
+    vInitList.emplace<std::vector<int>>({1,2,3,4});
+    CHECK(vInitList.index() == 1);
+    vInitList.emplace<1>({3,2,1});
+}
+
+
+TEST_CASE("Get variant value", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    core::Variant<int, std::string> v{"abc"};
+    auto stringValue = core::get<std::string>(v);
+    CHECK(stringValue == "abc");
+    CHECK(stringValue == core::get<1>(v));
+
+    v = 1;
+    CHECK(core::get<int>(v) == 1);
+    CHECK(core::get<0>(v) == core::get<int>(v));
+    
+}
+
+TEST_CASE("Conditionally get variant value", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    core::Variant<int, float> v{12};
+    CHECK(core::get_if<int>(&v));
+    CHECK(!core::get_if<float>(&v));
+    CHECK(core::get_if<0>(&v));
+    CHECK(!core::get_if<1>(&v));
+
+    v = 1.2f;
+    CHECK(!core::get_if<int>(&v));
+    CHECK(core::get_if<float>(&v));
+    CHECK(!core::get_if<0>(&v));
+    CHECK(core::get_if<1>(&v));
 }
 
 TEST_CASE("variant_size", "[SWS_CORE], [SWS_CORE_01601]")

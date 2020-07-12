@@ -229,15 +229,11 @@ template<typename... Alternatives> class Variant
     }
 
     template<class T, class U, class... Args>
-    requires_<is_constructible_v<std::decay_t<T>,
-                                 std::initializer_list<U>&,
-                                 Args...> && is_unique_v<T, Args...>,
+    requires_<is_constructible_v<T, std::initializer_list<U>&, Args...> && is_unique_v<T, Alternatives...>,
               T&>
     emplace(std::initializer_list<U> il, Args&&... args)
     {
-        return _impl.template emplace<T, U, Args...>(il,
-                                                     std::forward<Args>(
-                                                       args)...);
+        return _impl.template emplace<T>(il, std::forward<Args>(args)...);
     }
 
     template<size_t I, class... Args>
