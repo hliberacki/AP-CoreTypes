@@ -368,8 +368,8 @@ template<typename... Alternatives> class Variant
      * @param args arguments passed to constructor.
      */
     template<class T, class... Args>
-    constexpr explicit Variant(std::in_place_type_t<T> t, Args&&... args)
-      : _impl(t, std::forward<Args>(args)...)
+    constexpr explicit Variant(ara::core::in_place_type_t<T> t, Args&&... args)
+      : _impl(std::in_place_type_t<T> {}, std::forward<Args>(args)...)
     {}
 
 
@@ -387,10 +387,10 @@ template<typename... Alternatives> class Variant
      * @param args arguments passed to constructor.
      */
     template<class T, class U, class... Args>
-    constexpr explicit Variant(std::in_place_type_t<T>  t,
+    constexpr explicit Variant(ara::core::in_place_type_t<T>,
                                std::initializer_list<U> il,
                                Args&&... args)
-      : _impl(t, il, std::forward<Args>(args)...)
+      : _impl(std::in_place_type_t<T>{}, il, std::forward<Args>(args)...)
     {}
 
     /**
@@ -401,12 +401,12 @@ template<typename... Alternatives> class Variant
      *
      * @tparam I index of type in_place which constructor is called.
      * @tparam Args arguments passed to constructor.
-     * @param t in_place_type_t tag.
+     * @param t in_place_index_t tag.
      * @param args arguments passed to constructor.
      */
     template<std::size_t I, class... Args>
-    constexpr explicit Variant(std::in_place_index_t<I> i, Args&&... args)
-      : _impl(i, std::forward<Args>(args)...)
+    constexpr explicit Variant(ara::core::in_place_index_t<I>, Args&&... args)
+      : _impl(std::in_place_index_t<I> {}, std::forward<Args>(args)...)
     {}
 
     /**
@@ -418,15 +418,15 @@ template<typename... Alternatives> class Variant
      * @tparam I index of type in_place which constructor is called.
      * @tparam U type used in initializer_list.
      * @tparam Args arguments passed to constructor.
-     * @param t in_place_type_t tag.
+     * @param t in_place_index_t tag.
      * @param il initializer_list.
      * @param args arguments passed to constructor.
      */
     template<std::size_t I, class U, class... Args>
-    constexpr explicit Variant(std::in_place_index_t<I> i,
+    constexpr explicit Variant(ara::core::in_place_index_t<I>,
                                std::initializer_list<U> il,
                                Args&&... args)
-      : _impl(i, il, std::forward<Args>(args)...)
+      : _impl(std::in_place_index_t<I> {}, il, std::forward<Args>(args)...)
     {}
 
     /**
