@@ -368,7 +368,7 @@ template<typename... Alternatives> class Variant
      * @param args arguments passed to constructor.
      */
     template<class T, class... Args>
-    constexpr explicit Variant(ara::core::in_place_type_t<T> t, Args&&... args)
+    constexpr explicit Variant(ara::core::in_place_type_t<T>, Args&&... args)
       : _impl(std::in_place_type_t<T> {}, std::forward<Args>(args)...)
     {}
 
