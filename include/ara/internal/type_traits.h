@@ -197,7 +197,7 @@ struct type_occurrence<Condition, T, TypeList<Ts...>>
  * specialization used for metaprogramming - recursively.
  *
  * Template traverse all given types and if given T and Head meets Condition
- *then constexpr counter value is increased.
+ * then constexpr counter value is increased.
  *
  **/
 template<template<class...> class Condition, class T, class Head, class... Tail>

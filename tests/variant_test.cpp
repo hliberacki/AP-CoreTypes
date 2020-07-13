@@ -1,9 +1,9 @@
 #include <catch2/catch.hpp>
 
+#include "ara/core/variant.h"
 #include <string>
 #include <type_traits>
-
-#include "ara/core/variant.h"
+#include <vector>
 
 namespace core = ara::core;
 
@@ -183,4 +183,17 @@ TEST_CASE("holds_alternative", "[SWS_CORE], [SWS_CORE_01601]")
     v = 1;
     CHECK(core::holds_alternative<int>(v));
     CHECK(! core::holds_alternative<std::string>(v));
+}
+
+template<class... Ts> struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
+
+TEST_CASE("visit", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    using var_t = core::Variant<int, long, double, std::string>;
+
+    std::vector<var_t> collection = {10, 15l, 1.5, "hello"};
 }
