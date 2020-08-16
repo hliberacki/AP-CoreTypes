@@ -369,7 +369,7 @@ template<typename... Alternatives> class Variant
      */
     template<class T, class... Args>
     constexpr explicit Variant(ara::core::in_place_type_t<T>, Args&&... args)
-      : _impl(std::in_place_type_t<T> {}, std::forward<Args>(args)...)
+      : _impl(std::in_place_type_t<T>{}, std::forward<Args>(args)...)
     {}
 
 
@@ -406,7 +406,7 @@ template<typename... Alternatives> class Variant
      */
     template<std::size_t I, class... Args>
     constexpr explicit Variant(ara::core::in_place_index_t<I>, Args&&... args)
-      : _impl(std::in_place_index_t<I> {}, std::forward<Args>(args)...)
+      : _impl(std::in_place_index_t<I>{}, std::forward<Args>(args)...)
     {}
 
     /**
@@ -426,7 +426,7 @@ template<typename... Alternatives> class Variant
     constexpr explicit Variant(ara::core::in_place_index_t<I>,
                                std::initializer_list<U> il,
                                Args&&... args)
-      : _impl(std::in_place_index_t<I> {}, il, std::forward<Args>(args)...)
+      : _impl(std::in_place_index_t<I>{}, il, std::forward<Args>(args)...)
     {}
 
     /**

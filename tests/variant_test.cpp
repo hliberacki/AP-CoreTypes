@@ -55,10 +55,12 @@ TEST_CASE("Variant converting constructor", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    core::Variant<int, float> vTypeSimple{ara::core::in_place_type_t<int>(), 10.5};
+    core::Variant<int, float> vTypeSimple{ara::core::in_place_type_t<int>(),
+                                          10.5};
     CHECK(vTypeSimple.index() == 0);
 
-    core::Variant<int, float> vIndexSimple{ara::core::in_place_index_t<1>(), 10.5};
+    core::Variant<int, float> vIndexSimple{ara::core::in_place_index_t<1>(),
+                                           10.5};
     CHECK(vIndexSimple.index() == 1);
 
     core::Variant<std::string, std::vector<int>>
