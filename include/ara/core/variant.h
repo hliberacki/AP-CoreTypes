@@ -236,7 +236,7 @@ template<std::size_t I, class T> struct variant_alternative<I, const volatile T>
 /**
  * Index of the variant in the invalid state.
  */
-inline constexpr std::size_t variant_npos = -1;
+inline constexpr std::size_t variant_npos = static_cast<std::size_t>(-1);
 
 /**
  * Checks if the variant holds the alternative T.
