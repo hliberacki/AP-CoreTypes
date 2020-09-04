@@ -6,7 +6,8 @@ srcs = [
     'array_test.cpp',
     'map_test.cpp',
     'utility_test.cpp',
-    'variant_test.cpp'
+    'variant_test.cpp',
+    'byte_test.cpp'
 ]
 
 # Add `include` to include directories
