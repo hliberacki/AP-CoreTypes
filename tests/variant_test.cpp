@@ -109,7 +109,7 @@ template<bool B> struct MoveFoo
     MoveFoo() {}
     MoveFoo(MoveFoo&&) { CHECK(! B); }
     MoveFoo& operator=(const MoveFoo&) = delete;
-    MoveFoo& operator=(MoveFoo&&)
+    MoveFoo& operator                  =(MoveFoo&&)
     {
         CHECK(B);
         return *this;
@@ -241,7 +241,7 @@ template<bool B> struct AssignFoo
     AssignFoo() {}
     AssignFoo(const AssignFoo&) { CHECK(! B); }
     AssignFoo(AssignFoo&&) = delete;
-    AssignFoo& operator=(const AssignFoo&)
+    AssignFoo& operator    =(const AssignFoo&)
     {
         CHECK(B);
         return *this;
