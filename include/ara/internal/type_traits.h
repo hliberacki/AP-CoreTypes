@@ -276,7 +276,7 @@ struct find_matching_type<true, Condition, T, Head, Tail...>
  */
 template<template<class...> class Condition, class T, class... Ts>
 using find_matching_type_t =
-  find_matching_type<false, Condition, T, Ts...>::type;
+  typename find_matching_type<false, Condition, T, Ts...>::type;
 
 
 /**
