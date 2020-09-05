@@ -14,31 +14,31 @@ TEST_CASE("Variant default constructor", "[SWS_CORE], [SWS_CORE_01601]")
     CHECK(v.index() == 0);
     CHECK(0 == core::get<int>(v));
 
-    WHEN("Custom type")
+    SECTION("Custom type")
     {
         struct Foo
         {
-            Foo(int v) : val{v} {}
+            Foo() : val{12} {}
             int val;
         };
 
-        core::Variant<int, Foo> vCustom{Foo{12}};
+        core::Variant<Foo, int> vCustom;
 
-        CHECK(vCustom.index() == 1);
+        CHECK(vCustom.index() == 0);
         CHECK(12 == core::get<Foo>(vCustom).val);
     }
 }
 
 TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    WHEN("constexpr Variant")
+    SECTION("constexpr Variant")
     {
         constexpr core::Variant<int, char> v1{1};
 
         static_assert(v1.index() == 0);
         static_assert(1 == core::get<int>(v1));
 
-        THEN("copy constructor")
+        SECTION("copy constructor")
         {
             constexpr core::Variant<int, char> v2{v1};
 
@@ -47,14 +47,14 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 
-    WHEN("Const variant with std::string")
+    SECTION("Const variant with std::string")
     {
         const core::Variant<int, std::string> v1{"abc"};
 
         CHECK(v1.index() == 1);
         CHECK("abc" == core::get<std::string>(v1));
 
-        THEN("copy constructor")
+        SECTION("copy constructor")
         {
             core::Variant<int, std::string> v2(v1);
 
@@ -63,14 +63,14 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 
-    WHEN("Variant with std::string")
+    SECTION("Variant with std::string")
     {
         core::Variant<int, std::string> v1{"abc"};
 
         CHECK(v1.index() == 1);
         CHECK("abc" == core::get<std::string>(v1));
 
-        THEN("copy constructor")
+        SECTION("copy constructor")
         {
             core::Variant<int, std::string> v2(v1);
 
@@ -79,7 +79,7 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 
-    WHEN("Custom type")
+    SECTION("Custom type")
     {
         struct Foo
         {
@@ -87,13 +87,13 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
             int val;
         };
 
-        WHEN("Variant with Foo type")
+        SECTION("Variant with Foo type")
         {
             core::Variant<int, Foo, std::string> vCustom{Foo{10}};
 
             CHECK(10 == core::get<Foo>(vCustom).val);
 
-            THEN("copy constructor")
+            SECTION("copy constructor")
             {
                 core::Variant<int, Foo, std::string> vCopied{vCustom};
 
@@ -107,9 +107,10 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
 template<bool B> struct MoveFoo
 {
     MoveFoo() {}
-    MoveFoo(MoveFoo&&) { CHECK(! B); }
     MoveFoo& operator=(const MoveFoo&) = delete;
-    MoveFoo& operator                  =(MoveFoo&&)
+    MoveFoo(MoveFoo&&) { CHECK(! B); }
+
+    MoveFoo& operator=(MoveFoo&&)
     {
         CHECK(B);
         return *this;
@@ -118,22 +119,22 @@ template<bool B> struct MoveFoo
 
 TEST_CASE("Variant move constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    WHEN("const Variant")
+    SECTION("const Variant")
     {
         const core::Variant<int, std::string> v1{"abc"};
 
-        THEN("move constructor")
+        SECTION("move constructor")
         {
             core::Variant<int, std::string> v2(std::move(v1));
             CHECK(v2.index() == 1);
         }
     }
 
-    WHEN("Variant")
+    SECTION("Variant")
     {
         core::Variant<int, std::string> v1{"abc"};
 
-        THEN("move contructor")
+        SECTION("move contructor")
         {
             core::Variant<int, std::string> v2(std::move(v1));
 
@@ -142,15 +143,15 @@ TEST_CASE("Variant move constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 
-    WHEN("Custom type")
+    SECTION("Custom type")
     {
-        THEN("move constructor the same types")
+        SECTION("move constructor the same types")
         {
             core::Variant<MoveFoo<true>, int> v1, v2;
             v1 = std::move(v2);
         }
 
-        THEN("move constructor the different types")
+        SECTION("move constructor the different types")
         {
             core::Variant<MoveFoo<false>, int> v1{0}, v2;
             v1 = std::move(v2);
@@ -160,7 +161,7 @@ TEST_CASE("Variant move constructor", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Variant converting constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    WHEN("assign string")
+    SECTION("assign string")
     {
         core::Variant<int, std::string> v{"abc"};
 
@@ -168,7 +169,7 @@ TEST_CASE("Variant converting constructor", "[SWS_CORE], [SWS_CORE_01601]")
         CHECK("abc" == core::get<std::string>(v));
     }
 
-    WHEN("assign int")
+    SECTION("assign int")
     {
         core::Variant<int, std::string> v{1};
 
@@ -176,17 +177,17 @@ TEST_CASE("Variant converting constructor", "[SWS_CORE], [SWS_CORE_01601]")
         CHECK(1 == core::get<int>(v));
     }
 
-    WHEN("exact match")
+    SECTION("exact match")
     {
         using variantExactMatch = core::Variant<std::string, const char*>;
 
-        THEN("implicit")
+        SECTION("implicit")
         {
             variantExactMatch vImplicit{"abc"};
             CHECK(vImplicit.index() == 1);
         }
 
-        THEN("explicit")
+        SECTION("explicit")
         {
             variantExactMatch vExplicit{std::string{"abc"}};
             CHECK(vExplicit.index() == 0);
@@ -196,9 +197,9 @@ TEST_CASE("Variant converting constructor", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    WHEN("in place by index")
+    SECTION("in place by index")
     {
-        THEN("simple type")
+        SECTION("simple type")
         {
             core::Variant<int, float>
               vIndexSimple{ara::core::in_place_index_t<1>(), 10.5};
@@ -206,7 +207,7 @@ TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
             CHECK(vIndexSimple.index() == 1);
         }
 
-        THEN("container type")
+        SECTION("container type")
         {
             core::Variant<std::string, std::vector<int>>
               vIndexList{ara::core::in_place_index_t<1>(), {1, 2, 3}};
@@ -215,17 +216,17 @@ TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 
-    WHEN("in place by type")
+    SECTION("in place by type")
     {
 
-        THEN("simple type")
+        SECTION("simple type")
         {
             core::Variant<int, float>
               vTypeSimple{ara::core::in_place_type_t<int>(), 10.5};
             CHECK(vTypeSimple.index() == 0);
         }
 
-        THEN("container type")
+        SECTION("container type")
         {
             core::Variant<std::string, std::vector<int>>
               vTypeList{ara::core::in_place_type_t<std::vector<int>>(),
@@ -239,9 +240,9 @@ TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
 template<bool B> struct AssignFoo
 {
     AssignFoo() {}
-    AssignFoo(const AssignFoo&) { CHECK(! B); }
     AssignFoo(AssignFoo&&) = delete;
-    AssignFoo& operator    =(const AssignFoo&)
+    AssignFoo(const AssignFoo&) { CHECK(! B); }
+    AssignFoo& operator=(const AssignFoo&)
     {
         CHECK(B);
         return *this;
@@ -251,7 +252,7 @@ template<bool B> struct AssignFoo
 
 TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    WHEN("assign variant")
+    SECTION("assign variant")
     {
         core::Variant<int, std::string> v1{12};
         core::Variant<int, std::string> v2{"abc"};
@@ -260,7 +261,7 @@ TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
         CHECK(core::get<std::string>(v1) == core::get<std::string>(v2));
     }
 
-    WHEN("assign value")
+    SECTION("assign value")
     {
         core::Variant<int, std::string> v;
         v = "abc";
@@ -270,13 +271,13 @@ TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
 
     WHEN("custom type")
     {
-        THEN("different alternatives")
+        SECTION("different alternatives")
         {
             core::Variant<AssignFoo<false>, int> v1(12), v2;
             v1 = v2;
         }
 
-        THEN("same alternatives")
+        SECTION("same alternatives")
         {
             core::Variant<AssignFoo<true>, int> v1, v2;
             v1 = v2;
@@ -286,20 +287,20 @@ TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Variant comparision operators", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    WHEN("operator==")
+    SECTION("operator==")
     {
-        THEN("different alternatives")
+        SECTION("different alternatives")
         {
             core::Variant<std::string, int> v, v2(1);
             CHECK(! (v == v2));
         }
 
-        THEN("same alternatives")
+        SECTION("same alternatives")
         {
             core::Variant<std::string, int> v, v2;
             CHECK(v == v2);
 
-            THEN("difference values")
+            SECTION("difference values")
             {
                 core::Variant<std::string, int> v{1}, v2{2};
                 CHECK(v != v2);
@@ -307,24 +308,24 @@ TEST_CASE("Variant comparision operators", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 
-    WHEN("operator!=")
+    SECTION("operator!=")
     {
-        THEN("different alternatives")
+        SECTION("different alternatives")
         {
             core::Variant<std::string, int> v, v2(1);
             CHECK(v != v2);
         }
 
-        THEN("difference values")
+        SECTION("difference values")
         {
             core::Variant<std::string, int> v{1}, v2{2};
             CHECK(v != v2);
         }
     }
 
-    WHEN("operators > >= <= <")
+    SECTION("operators > >= <= <")
     {
-        THEN("different alternatives")
+        SECTION("different alternatives")
         {
             core::Variant<std::string, int> v, v2(1);
 
@@ -334,7 +335,7 @@ TEST_CASE("Variant comparision operators", "[SWS_CORE], [SWS_CORE_01601]")
             CHECK(! (v >= v2));
         }
 
-        THEN("different values")
+        SECTION("different values")
         {
             core::Variant<std::string, int> v{1}, v2{2};
 
@@ -388,29 +389,44 @@ TEST_CASE("Variant emplace", "[SWS_CORE], [SWS_CORE_01601]")
 
 TEST_CASE("Get variant value", "[SWS_CORE], [SWS_CORE_01601]")
 {
-    core::Variant<int, std::string> v{"abc"};
-    auto                            stringValue = core::get<std::string>(v);
-    CHECK(stringValue == "abc");
-    CHECK(stringValue == core::get<1>(v));
+    core::Variant<int, std::string> v;
+    SECTION("holds string")
+    {
+        v = "abc";
 
-    v = 1;
-    CHECK(core::get<int>(v) == 1);
-    CHECK(core::get<0>(v) == core::get<int>(v));
+        CHECK(core::get<std::string>(v) == "abc");
+        CHECK(core::get<std::string>(v) == core::get<1>(v));
+    }
+
+    SECTION("holds int")
+    {
+        v = 1;
+
+        CHECK(core::get<int>(v) == 1);
+        CHECK(core::get<0>(v) == core::get<int>(v));
+    }
 }
 
 TEST_CASE("Conditionally get variant value", "[SWS_CORE], [SWS_CORE_01601]")
 {
     core::Variant<int, float> v{12};
-    CHECK(core::get_if<int>(&v));
-    CHECK(! core::get_if<float>(&v));
-    CHECK(core::get_if<0>(&v));
-    CHECK(! core::get_if<1>(&v));
 
-    v = 1.2f;
-    CHECK(! core::get_if<int>(&v));
-    CHECK(core::get_if<float>(&v));
-    CHECK(! core::get_if<0>(&v));
-    CHECK(core::get_if<1>(&v));
+    SECTION("holds int")
+    {
+        CHECK(core::get_if<int>(&v));
+        CHECK(! core::get_if<float>(&v));
+        CHECK(core::get_if<0>(&v));
+        CHECK(! core::get_if<1>(&v));
+    }
+
+    SECTION("holds float")
+    {
+        v = 1.2f;
+        CHECK(! core::get_if<int>(&v));
+        CHECK(core::get_if<float>(&v));
+        CHECK(! core::get_if<0>(&v));
+        CHECK(core::get_if<1>(&v));
+    }
 }
 
 TEST_CASE("variant_size", "[SWS_CORE], [SWS_CORE_01601]")
@@ -445,11 +461,20 @@ TEST_CASE("variant_alternative", "[SWS_CORE], [SWS_CORE_01601]")
 TEST_CASE("holds_alternative", "[SWS_CORE], [SWS_CORE_01601]")
 {
     core::Variant<int, std::string> v{"abc"};
-    CHECK(! core::holds_alternative<int>(v));
-    CHECK(core::holds_alternative<std::string>(v));
+
+    SECTION("holds string")
+    {
+        CHECK(! core::holds_alternative<int>(v));
+        CHECK(core::holds_alternative<std::string>(v));
+    }
+
     v = 1;
-    CHECK(core::holds_alternative<int>(v));
-    CHECK(! core::holds_alternative<std::string>(v));
+
+    SECTION("holds int")
+    {
+        CHECK(core::holds_alternative<int>(v));
+        CHECK(! core::holds_alternative<std::string>(v));
+    }
 }
 
 template<class... Ts> struct overloaded : Ts...

@@ -8,8 +8,8 @@
 #ifndef ARA_CORE_VARIANT_H_
 #define ARA_CORE_VARIANT_H_
 
+#include "ara/core/utility.h"          //std::in_place_{type|index}_t
 #include "ara/internal/type_traits.h"  //
-#include "utility.h"                   //std::in_place_{type|index}_t
 #include <variant>                     //std::variant
 
 namespace ara::core {
@@ -17,6 +17,12 @@ namespace inter = ara::internal;
 
 // forward declaration
 template<typename... Alternatives> class Variant;
+
+
+/** @defgroup Helpers
+ *  Helpers classes and objects
+ *  @{
+ */
 
 // 20.7.4[C++ Standard], Variant helper classes
 /**
@@ -237,6 +243,12 @@ template<std::size_t I, class T> struct variant_alternative<I, const volatile T>
  * Index of the variant in the invalid state.
  */
 inline constexpr std::size_t variant_npos = static_cast<std::size_t>(-1);
+/** @} */  // end of Helpers
+
+/** @defgroup Non-member
+ *  Non-member functions
+ *  @{
+ */
 
 /**
  * Checks if the variant holds the alternative T.
@@ -253,6 +265,7 @@ holds_alternative(const Variant<Alternatives...>& variant) noexcept
     static_assert(inter::is_unique_v<T, Alternatives...>, "T must be unique");
     return (variant.index() == inter::element_pos_v<T, Alternatives...>);
 }
+/** @} */  // end of Non-member
 
 /**
  * Representation of a type-safe union.
@@ -298,7 +311,9 @@ template<typename... Alternatives> class Variant
     static_assert(inter::not_<(inter::is_void_v<Alternatives> || ...)>,
                   "variant must have no void alternative");
 
-    // Constructors
+    /** @defgroup Constructors
+     *  @{
+     */
 
     /**
      * Default constructor.
@@ -429,6 +444,7 @@ template<typename... Alternatives> class Variant
                                Args&&... args)
       : _impl(std::in_place_index_t<I>{}, il, std::forward<Args>(args)...)
     {}
+    /** @} */  // end of Constructors
 
     /**
      * Destructor.
@@ -492,7 +508,10 @@ template<typename... Alternatives> class Variant
         return *this;
     }
 
-    // Observers
+    /** @defgroup Observers
+     *  @{
+     */
+
     /**
      * Returns the zero-based index of the alternative that is currently held by
      * the variant. If the variant is valueless_by_exception, returns
@@ -516,7 +535,12 @@ template<typename... Alternatives> class Variant
         return _impl.valueless_by_exception();
     }
 
-    // Modifiers
+    /** @}*/  // end of Observers
+
+    /** @defgroup Modifiers
+     *  @{
+     */
+
     /**
      * Creates a new value in-place, in an existing variant object.
      *
@@ -625,8 +649,13 @@ template<typename... Alternatives> class Variant
     {
         _impl.swap(rhs._impl);
     }
+    /** @} */  // end of Modifiers
 
-    // friend methods
+
+    /** @addtogroup Non-member
+     *  Non-member functions
+     *  @{
+     */
     template<std::size_t I, class... Ts>
     friend constexpr variant_alternative_t<I, Variant<Ts...>>&
     get(Variant<Ts...>& v);
@@ -659,7 +688,7 @@ template<typename... Alternatives> class Variant
     operator>(const Variant<Ts...>& v, const Variant<Ts...>& w);
     template<class... Ts> friend constexpr bool
     operator>=(const Variant<Ts...>& v, const Variant<Ts...>& w);
-
+    /** @} */  // end of Non-member
 
  private:
     // wrapped member

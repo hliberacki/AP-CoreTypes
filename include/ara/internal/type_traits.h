@@ -158,7 +158,7 @@ template<class T, class... Ts> struct element_pos
 template<class T, class Head, class... Tail>
 struct element_pos<T, Head, Tail...>
   : std::integral_constant<
-      size_t,
+      std::size_t,
       is_same_v<T, Head> ? 0 : element_pos<T, Tail...>::value + 1>
 {};
 
@@ -190,7 +190,7 @@ struct type_occurrence;  // undefined case
  */
 template<template<class...> class Condition, class T, class... Ts>
 struct type_occurrence<Condition, T, TypeList<Ts...>>
-  : std::integral_constant<size_t, 0>
+  : std::integral_constant<std::size_t, 0>
 {};
 
 /**
@@ -203,7 +203,7 @@ struct type_occurrence<Condition, T, TypeList<Ts...>>
 template<template<class...> class Condition, class T, class Head, class... Tail>
 struct type_occurrence<Condition, T, TypeList<Head, Tail...>>
   : std::integral_constant<
-      size_t,
+      std::size_t,
       Condition<T, Head>::value
         ? type_occurrence<Condition, T, TypeList<Tail...>>::value + 1
         : type_occurrence<Condition, T, TypeList<Tail...>>::value>
