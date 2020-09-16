@@ -7,7 +7,7 @@ srcs = [
     'map_test.cpp',
     'utility_test.cpp',
     'variant_test.cpp',
-    'byte_test.cpp'
+    'byte_test.cpp',
     'result_test.cpp'
 ]
 
