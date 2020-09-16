@@ -189,7 +189,10 @@ template<std::size_t I, class T> struct variant_alternative;  // undefined case
 template<std::size_t I, class Head, class... Tail>
 struct variant_alternative<I, Variant<Head, Tail...>>
   : variant_alternative<I - 1, Variant<Tail...>>
-{};
+{
+    static_assert(inter::is_in_range_v<I, Head, Tail...>,
+                  "Index must be in range of alternatives number");
+};
 
 
 /**
@@ -279,6 +282,21 @@ holds_alternative(const Variant<Alternatives...>& variant) noexcept
  */
 template<typename... Alternatives> class Variant
 {
+    /**
+     * FIXME: Current implementation with place_holder for core logic replaced
+     * by std::variant has to be changed. std::variant shall be removed and
+     * implementation shall be provided. Current solution makes it impossible or
+     * hardly possible to properly implement some requirements which needs to
+     * exclude functions from overload resolution. In future implementation pure
+     * SFINAE (inter::requires_) must be replaced by "base class" inheritance
+     * using type_traits as conditions.
+     *
+     * Missing requirements are listed within each function FIXME.
+     *
+     * Github issue:
+     * https://github.com/UmlautSoftwareDevelopmentAccount/AP-CoreTypes/issues/62
+     */
+
  private:
     // helpers
 
@@ -309,7 +327,9 @@ template<typename... Alternatives> class Variant
     static_assert(inter::not_<(inter::is_reference_v<Alternatives> || ...)>,
                   "Variant must have no reference alternative");
     static_assert(inter::not_<(inter::is_void_v<Alternatives> || ...)>,
-                  "variant must have no void alternative");
+                  "Variant must have no void alternative");
+    static_assert(inter::not_<(std::is_array<Alternatives>::value || ...)>,
+                  "Variant must have no array alternative");
 
     /** @defgroup Constructors
      *  @{
@@ -322,27 +342,36 @@ template<typename... Alternatives> class Variant
      * Alternative.
      *
      */
+    template<typename = inter::requires_<inter::is_default_constructible_v<T_0>>>
     constexpr Variant() noexcept(inter::is_nothrow_default_constructible_v<T_0>)
       : _impl()
     {}
 
     /**
+     * FIXME: adding precondition 23.7.3.1.8 breaks the compilation.
+     *        problem has to be investigated because inter::requires_<true> is
+     * not valid as well. Concepts and requires clause from C++20 works as
+     * expected. Final version will use different technique to acheave the goal.
+     *
      * Copy constructor.
      *
      * Constructs a Variant holding the same alternative as other.
      *
      * @param other Variant to be copied from.
-     *
      */
     constexpr Variant(const Variant& other) : _impl(other._impl) {}
 
     /**
+     * FIXME: adding precondition 23.7.3.1.11 breaks the compilation.
+     *        problem has to be investigated because inter::requires_<true> is
+     * not valid as well. Concepts and requires clause from C++20 works as
+     * expected. Final version will use different technique to acheave the goal.
+     *
      * Move constructor.
      *
      * Constructs a Variant holding the same alternative as other.
      *
      * @param other Variant to be moved value from.
-     *
      */
     constexpr Variant(Variant&& other) noexcept(
       (inter::is_nothrow_move_constructible_v<Alternatives> && ...))
@@ -351,6 +380,9 @@ template<typename... Alternatives> class Variant
 
     /**
      * Converting constructor.
+     *
+     * Postconditions as in 23.7.3.1.14 are realised by the underlying
+     * std::variant implementation from C++17 standard.
      *
      * Constructs a Variant holding the alternative type T that would be
      * selected by overload resolution. Constructor is enabled only if: T !=
@@ -364,16 +396,24 @@ template<typename... Alternatives> class Variant
     template<
       class T,
       typename = inter::requires_<inter::not_<equals_self_v<T>>>,
-      typename = inter::requires_<inter::not_<inter::is_in_place_v<T>>>,
+      typename =
+        inter::requires_<inter::not_<inter::is_in_place_v<std::decay_t<T>>>>,
+      /**
+       * FIXME: Add missing 23.7.1.16 "unless is_constructible_v<Tj, T> is true,
+       * and unless the expression FUN(std::forward<T>(t)) (with FUN being the
+       * above mentioned set of imaginary functions) is well formed"
+       */
       class Ti =
         inter::find_matching_type_t<std::is_convertible, T, Alternatives...>>
-    constexpr Variant(T&& t) noexcept(
-      inter::is_nothrow_constructible_v<Ti, inter::decay_t<T>>)
+    constexpr Variant(T&& t) noexcept(inter::is_nothrow_constructible_v<Ti, T>)
       : _impl(std::forward<T>(t))
     {}
 
     /**
      * In place by type constructor.
+     *
+     * Postconditions as in 23.7.3.1.20 are realised by the underlying
+     * std::variant implementation from C++17 standard.
      *
      * Constructs a Variant with the specified alternative T and initializes the
      * contained value with the arguments.
@@ -383,7 +423,12 @@ template<typename... Alternatives> class Variant
      * @param t in_place_type_t tag.
      * @param args arguments passed to constructor.
      */
-    template<class T, class... Args>
+    template<class T,
+             class... Args,
+             typename = inter::requires_<
+               inter::is_unique_v<
+                 T,
+                 Alternatives...> && inter::is_constructible_v<T, Args...>>>
     constexpr explicit Variant(ara::core::in_place_type_t<T>, Args&&... args)
       : _impl(std::in_place_type_t<T>{}, std::forward<Args>(args)...)
     {}
@@ -391,6 +436,9 @@ template<typename... Alternatives> class Variant
 
     /**
      * In place by type constructor with initializer_list.
+     *
+     * Postconditions as in 23.7.3.1.24 are realised by the underlying
+     * std::variant implementation from C++17 standard.
      *
      * Constructs a Variant with the specified alternative T and initializes the
      * contained value with the arguments.
@@ -402,7 +450,14 @@ template<typename... Alternatives> class Variant
      * @param il initializer_list.
      * @param args arguments passed to constructor.
      */
-    template<class T, class U, class... Args>
+    template<
+      class T,
+      class U,
+      class... Args,
+      typename = inter::requires_<
+        inter::is_unique_v<
+          T,
+          Alternatives...> && inter::is_constructible_v<T, std::initializer_list<U>&, Args...>>>
     constexpr explicit Variant(ara::core::in_place_type_t<T>,
                                std::initializer_list<U> il,
                                Args&&... args)
@@ -412,6 +467,9 @@ template<typename... Alternatives> class Variant
     /**
      * In place by index constructor.
      *
+     * Postconditions as in 23.7.3.1.28 are realised by the underlying
+     * std::variant implementation from C++17 standard.
+     *
      * Constructs a Variant with the specified alternative T and initializes the
      * contained value with the arguments.
      *
@@ -420,13 +478,21 @@ template<typename... Alternatives> class Variant
      * @param t in_place_index_t tag.
      * @param args arguments passed to constructor.
      */
-    template<std::size_t I, class... Args>
+    template<
+      std::size_t I,
+      class... Args,
+      typename = inter::requires_<inter::is_in_range_v<I, Alternatives...>>,
+      typename = inter::requires_<
+        (inter::is_constructible_v<Alternatives, Args...> && ...)>>
     constexpr explicit Variant(ara::core::in_place_index_t<I>, Args&&... args)
       : _impl(std::in_place_index_t<I>{}, std::forward<Args>(args)...)
     {}
 
     /**
      * In place by index constructor with initializer_list.
+     *
+     * Postconditions as in 23.7.3.1.32 are realised by the underlying
+     * std::variant implementation from C++17 standard.
      *
      * Constructs a Variant with the specified alternative T and initializes the
      * contained value with the arguments.
@@ -438,7 +504,15 @@ template<typename... Alternatives> class Variant
      * @param il initializer_list.
      * @param args arguments passed to constructor.
      */
-    template<std::size_t I, class U, class... Args>
+    template<
+      std::size_t I,
+      class U,
+      class... Args,
+      typename = inter::requires_<inter::is_in_range_v<I, Alternatives...>>,
+      typename =
+        inter::requires_<(std::is_constructible_v<Alternatives,
+                                                  std::initializer_list<U>&,
+                                                  Args...> || ...)>>
     constexpr explicit Variant(ara::core::in_place_index_t<I>,
                                std::initializer_list<U> il,
                                Args&&... args)
@@ -449,6 +523,12 @@ template<typename... Alternatives> class Variant
     /**
      * Destructor.
      *
+     * Requirements as in 23.7.3.2.{1-2} are realised by the underlying
+     * std::variant implementation from C++17 standard.
+     *
+     * FIXME: Implement base class inheritance with type_traits to choose
+     * correct destructor - in final version.
+     *
      * If valueless_by_exception is true, does nothing. Otherwise, destroys the
      * currently contained value.
      */
@@ -456,6 +536,13 @@ template<typename... Alternatives> class Variant
 
     /**
      * Copy-assignment.
+     *
+     * Postconditions as in 23.7.3.3.4 are realised by the underlying
+     * std::variant implementation from C++17 standard.
+     *
+     * FIXME: implement support of 23.7.3.3.5. Should be implemented as
+     * combination of type_traits and base class inheritance. In current
+     * implementation regular SFINAE will not work.
      *
      * Assigns a new value to an existing variant object.
      *
@@ -472,6 +559,10 @@ template<typename... Alternatives> class Variant
      * Move-assignment.
      *
      * Assigns a new value to an existing variant object.
+     *
+     * FIXME: Implement support of 23.7.3.3.9. Should be implemented as
+     * combination of type_traits and base class inheritance. In current
+     * implementation regular SFINAE will not work.
      *
      * @param rhs Variant to be assigned from.
      * @return Variant
@@ -490,6 +581,12 @@ template<typename... Alternatives> class Variant
      * Assigns the alternative of type T that would be
      * selected by overload resolution. Operator is enabled only if: T !=
      * Self, in_place, T is convertible to any type from Alternatives.
+     *
+     * Postconditions as in 23.7.3.3.12 are realised by the underlying
+     * std::variant implementation from C++17 standard.
+     *
+     * FIXME: Implement missing part of 23.7.3.3.14. Lack of functionality for
+     * imaginary function FUN is blocking
      *
      * @tparam T type which
      * @param rhs Variant to be assigned from.
@@ -554,7 +651,7 @@ template<typename... Alternatives> class Variant
      */
     template<class T, class... Args>
     inter::requires_<inter::is_constructible_v<
-                       inter::decay_t<T>,
+                       T,
                        Args...> && inter::is_unique_v<T, Alternatives...>,
                      T&>
     emplace(Args&&... args)
@@ -569,6 +666,9 @@ template<typename... Alternatives> class Variant
      * Value is emplaced using initializer_list.
      * Method is enabled if: T is constructible with initializer_list and Args,
      * T is unique in Alternatives.
+     *
+     * Postconditions as in 23.7.3.4.9 are realised by the underlying
+     * std::variant implementation from C++17 standard.
      *
      * @tparam T type in which value is emplaced.
      * @tparam U type of initializer_list.
@@ -593,6 +693,9 @@ template<typename... Alternatives> class Variant
      *
      * Method is enabled if: found T by index I is constructible with Args and T
      * is unique in Alternatives. I has to be in the range of Alternatives.
+     *
+     * Postconditions as in 23.7.3.4.15 are realised by the underlying
+     * std::variant implementation from C++17 standard.
      *
      * @tparam I index of T in which value is emplaced.
      * @tparam Args arguments to be emplaced.
@@ -813,6 +916,7 @@ get(const Variant<Alternatives...>&& v)
 template<class T, class... Alternatives> constexpr T&
 get(Variant<Alternatives...>& v)
 {
+    static_assert(inter::is_unique_v<T, Alternatives...>, "T must be unique");
     return std::get<T>(v._impl);
 }
 
@@ -831,6 +935,7 @@ get(Variant<Alternatives...>& v)
 template<class T, class... Alternatives> constexpr T&&
 get(Variant<Alternatives...>&& v)
 {
+    static_assert(inter::is_unique_v<T, Alternatives...>, "T must be unique");
     return std::get<T>(std::forward<std::variant<Alternatives...>>(v._impl));
 }
 
@@ -849,6 +954,7 @@ get(Variant<Alternatives...>&& v)
 template<class T, class... Alternatives> constexpr const T&
 get(const Variant<Alternatives...>& v)
 {
+    static_assert(inter::is_unique_v<T, Alternatives...>, "T must be unique");
     return std::get<T>(v._impl);
 }
 
@@ -867,11 +973,15 @@ get(const Variant<Alternatives...>& v)
 template<class T, class... Alternatives> constexpr const T&&
 get(const Variant<Alternatives...>&& v)
 {
+    static_assert(inter::is_unique_v<T, Alternatives...>, "T must be unique");
     return std::get<T>(std::forward<std::variant<Alternatives...>>(v._impl));
 }
 
 /**
  * Applies the visitor to the Variants.
+ *
+ * This function is realised by std::visit implementation. Behaviour and
+ * constraits meets 23.7.7 requirement from C++17 standard.
  *
  * @tparam Visitor a Callable that accepts every possible alternative from every
  * variant.
@@ -980,6 +1090,9 @@ get_if(const Variant<Alternatives...>* pv) noexcept
 /**
  * Equality operator for Variant.
  *
+ * This operator is realised by std::variant implementation. Behaviour and
+ * constraits meets 23.7.6 requirement from C++17 standard.
+ *
  * @param v left hand side Variant.
  * @param w right hand side Variant.
  * @return false if v.index() != w.index.
@@ -995,6 +1108,9 @@ operator==(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 /**
  * Inequality operator for Variant.
  *
+ * This operator is realised by std::variant implementation. Behaviour and
+ * constraits meets 23.7.6 requirement from C++17 standard.
+ *
  * @param v left hand side Variant.
  * @param w right hand side Variant.
  * @return true if v.index() != w.index.
@@ -1009,6 +1125,9 @@ operator!=(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 
 /**
  * Less-than operator for Variant.
+ *
+ * This operator is realised by std::variant implementation. Behaviour and
+ * constraits meets 23.7.6 requirement from C++17 standard.
  *
  * @param v left hand side Variant.
  * @param w right hand side Variant.
@@ -1027,6 +1146,9 @@ operator<(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 /**
  * Greater-than operator for Variant.
  *
+ * This operator is realised by std::variant implementation. Behaviour and
+ * constraits meets 23.7.6 requirement from C++17 standard.
+ *
  * @param v left hand side Variant.
  * @param w right hand side Variant.
  * @return true if w is value_less_by_exception or index of v is greater than
@@ -1043,6 +1165,9 @@ operator>(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 
 /**
  * Less-equal operator for Variant.
+ *
+ * This operator is realised by std::variant implementation. Behaviour and
+ * constraits meets 23.7.6 requirement from C++17 standard.
  *
  * @param v left hand side Variant.
  * @param w right hand side Variant.
@@ -1061,6 +1186,9 @@ operator<=(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 /**
  * Greater-equal operator for Variant.
  *
+ * This operator is realised by std::variant implementation. Behaviour and
+ * constraits meets 23.7.6 requirement from C++17 standard
+ *
  * @param v left hand side Variant.
  * @param w right hand side Variant.
  * @return true if w is value_less_by_exception or index of v is greater than
@@ -1074,6 +1202,19 @@ operator>=(const Variant<Alternatives...>& v, const Variant<Alternatives...>& w)
 {
     return v._impl >= w._impl;
 }
+
+
+/**
+ * FIXME: Implement 23.7.11 (bad_variant_access) along with exception handling -
+ * Github issue:
+ * https://github.com/UmlautSoftwareDevelopmentAccount/AP-CoreTypes/issues/60.
+ */
+
+/**
+ * FIXME: Implement 23.7.12 (hash support) and inject it into std namespace as
+ * std::hash specialization, Github issue:
+ * https://github.com/UmlautSoftwareDevelopmentAccount/AP-CoreTypes/issues/61.
+ */
 
 }  // namespace ara::core
 

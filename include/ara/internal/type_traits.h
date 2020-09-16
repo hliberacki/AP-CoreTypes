@@ -8,6 +8,7 @@
 #ifndef ARA_INTERNAL_TYPE_TRAITS_H_
 #define ARA_INTERNAL_TYPE_TRAITS_H_
 
+#include <cstddef>  //std::size_t
 #include <type_traits>
 
 #include "ara/core/utility.h"  //in_place{type|index}_t
@@ -221,7 +222,6 @@ struct type_occurrence<Condition, T, TypeList<Head, Tail...>>
 template<template<class...> class Condition, class T, class... Ts>
 constexpr std::size_t type_occurrence_v =
   type_occurrence<Condition, T, TypeList<Ts...>>::value;
-
 
 /**
  * Finds first type in list of Types, which meets given boolean Condition.
