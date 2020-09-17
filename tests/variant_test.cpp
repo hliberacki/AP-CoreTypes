@@ -1,11 +1,45 @@
 #include <catch2/catch.hpp>
 
 #include "ara/core/variant.h"
+
 #include <string>
 #include <type_traits>
 #include <vector>
 
 namespace core = ara::core;
+
+template<bool B> struct MoveFoo
+{
+    MoveFoo() {}
+    MoveFoo& operator=(const MoveFoo&) = delete;
+    MoveFoo(MoveFoo&&) { CHECK(! B); }
+
+    MoveFoo& operator=(MoveFoo&&)
+    {
+        CHECK(B);
+        return *this;
+    }
+};
+
+template<bool B> struct AssignFoo
+{
+    AssignFoo() {}
+    AssignFoo(AssignFoo&&) = delete;
+    AssignFoo(const AssignFoo&) { CHECK(! B); }
+    AssignFoo& operator=(const AssignFoo&)
+    {
+        CHECK(B);
+        return *this;
+    }
+    AssignFoo& operator=(AssignFoo&&) = delete;
+};
+
+template<class... Ts> struct overloaded : Ts...
+{
+    using Ts::operator()...;
+};
+
+template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
 
 TEST_CASE("Variant default constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
@@ -33,17 +67,17 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
     SECTION("constexpr Variant")
     {
-        core::Variant<int, char> v1{1};
+        constexpr core::Variant<int, char> v1{1};
 
-        // static_assert(v1.index() == 0);
-        // static_assert(1 == core::get<int>(v1));
+        static_assert(v1.index() == 0);
+        static_assert(1 == core::get<int>(v1));
 
         SECTION("copy constructor")
         {
-            core::Variant<int, char> v2{v1};
+            constexpr core::Variant<int, char> v2{v1};
 
-            // static_assert(v2.index() == 0);
-            // static_assert(core::get<int>(v1) == core::get<int>(v2));
+            static_assert(v2.index() == 0);
+            static_assert(core::get<int>(v1) == core::get<int>(v2));
         }
     }
 
@@ -103,19 +137,6 @@ TEST_CASE("Variant copy constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 }
-
-template<bool B> struct MoveFoo
-{
-    MoveFoo() {}
-    MoveFoo& operator=(const MoveFoo&) = delete;
-    MoveFoo(MoveFoo&&) { CHECK(! B); }
-
-    MoveFoo& operator=(MoveFoo&&)
-    {
-        CHECK(B);
-        return *this;
-    }
-};
 
 TEST_CASE("Variant move constructor", "[SWS_CORE], [SWS_CORE_01601]")
 {
@@ -236,19 +257,6 @@ TEST_CASE("Variant in_place constructor", "[SWS_CORE], [SWS_CORE_01601]")
         }
     }
 }
-
-template<bool B> struct AssignFoo
-{
-    AssignFoo() {}
-    AssignFoo(AssignFoo&&) = delete;
-    AssignFoo(const AssignFoo&) { CHECK(! B); }
-    AssignFoo& operator=(const AssignFoo&)
-    {
-        CHECK(B);
-        return *this;
-    }
-    AssignFoo& operator=(AssignFoo&&) = delete;
-};
 
 TEST_CASE("Variant operator=", "[SWS_CORE], [SWS_CORE_01601]")
 {
@@ -477,16 +485,44 @@ TEST_CASE("holds_alternative", "[SWS_CORE], [SWS_CORE_01601]")
     }
 }
 
-template<class... Ts> struct overloaded : Ts...
-{
-    using Ts::operator()...;
-};
-
-template<class... Ts> overloaded(Ts...) -> overloaded<Ts...>;
-
 TEST_CASE("visit", "[SWS_CORE], [SWS_CORE_01601]")
 {
     using var_t = core::Variant<int, long, double, std::string>;
 
     std::vector<var_t> collection = {10, 15l, 1.5, "hello"};
+}
+
+TEST_CASE("monostate", "[SWS_CORE], [SWS_CORE_01601]")
+{
+    struct notTrivial
+    {
+        notTrivial() = delete;
+        notTrivial(int i) : inner{i} {};
+
+        int inner;
+    };
+
+    SECTION("Non-trivial object inside Variant")
+    {
+        core::Variant<core::Monostate, notTrivial> v;
+
+        CHECK(v.index() == 0);
+
+        WHEN("assign value")
+        {
+            v = 0;
+            CHECK(v.index() == 1);
+        }
+    }
+
+    SECTION("Monostate equality operators")
+    {
+        core::Variant<core::Monostate> v1, v2;
+        CHECK(v1 == v2);
+        CHECK(v1 >= v2);
+        CHECK(v1 <= v2);
+        CHECK(! (v1 != v2));
+        CHECK(! (v1 > v2));
+        CHECK(! (v1 < v2));
+    }
 }
