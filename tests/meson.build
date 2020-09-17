@@ -6,6 +6,7 @@ srcs = [
     'array_test.cpp',
     'map_test.cpp',
     'utility_test.cpp',
+    'vector_test.cpp',
     'variant_test.cpp',
     'byte_test.cpp',
     'result_test.cpp'
